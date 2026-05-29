@@ -1,0 +1,6 @@
+{
+  "name": "Taschenrechner",
+  "description": "Taschenrechner mit Geheimmodus für berühmte Arcade-Spiele (Flappy Bird, Snake, Tetris), KI-Chatbot mit Bildgenerierung und Galerie, sowie Rechenhistorie.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
