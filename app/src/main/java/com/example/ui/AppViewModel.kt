@@ -37,13 +37,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             if (it == "bosdx7nmrnx5k4h75ynslr" || it.isEmpty()) "wjbgmmmqqbtvjinbwwwi" else it
         } ?: "wjbgmmmqqbtvjinbwwwi"
     )
-    var supabaseBucketName by mutableStateOf(prefs.getString("supabaseBucketName", "updates") ?: "updates")
+    var supabaseBucketName by mutableStateOf(
+        prefs.getString("supabaseBucketName", "")?.let {
+            if (it == "updates" || it.isEmpty()) "app-releases" else it
+        } ?: "app-releases"
+    )
     var supabaseKey by mutableStateOf(prefs.getString("supabaseKey", "sb_secret_5NOMN9xNXEBrdbj5r5URDQ_kHDV6QOz") ?: "sb_secret_5NOMN9xNXEBrdbj5r5URDQ_kHDV6QOz")
 
     init {
         // Automatically save the corrected default if it was modified or empty
         if (prefs.getString("supabaseProjectRef", "") != supabaseProjectRef) {
             prefs.edit().putString("supabaseProjectRef", supabaseProjectRef).apply()
+        }
+        if (prefs.getString("supabaseBucketName", "") != supabaseBucketName) {
+            prefs.edit().putString("supabaseBucketName", supabaseBucketName).apply()
         }
         updateManager.initialize(supabaseProjectRef, supabaseBucketName, supabaseKey)
     }

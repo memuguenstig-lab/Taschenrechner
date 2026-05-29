@@ -56,7 +56,7 @@ class UpdateManager(private val context: Context) {
                 val requestBuilder = Request.Builder()
                     .url("$supabaseUrl/version.json")
                 
-                if (supabaseKey.isNotEmpty()) {
+                if (supabaseKey.isNotEmpty() && !supabaseUrl.contains("/storage/v1/object/public/")) {
                     requestBuilder.header("apikey", supabaseKey)
                     requestBuilder.header("Authorization", "Bearer $supabaseKey")
                 }
@@ -107,7 +107,7 @@ class UpdateManager(private val context: Context) {
         withContext(Dispatchers.IO) {
             try {
                 val requestBuilder = Request.Builder().url(apkUrl)
-                if (supabaseKey.isNotEmpty()) {
+                if (supabaseKey.isNotEmpty() && !apkUrl.contains("/storage/v1/object/public/")) {
                     requestBuilder.header("apikey", supabaseKey)
                     requestBuilder.header("Authorization", "Bearer $supabaseKey")
                 }

@@ -21,11 +21,11 @@ jobs:
           distribution: 'zulu'
           cache: gradle
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug -PversionCode=${{ github.run_number }} -PversionName="1.0.${{ github.run_number }}"
+        run: gradle assembleDebug -PversionCode=${{ github.run_number }} -PversionName="1.0.${{ github.run_number }}"
 
       - name: Locate APK File
         run: |
