@@ -19,7 +19,21 @@ enum class SecretSection {
 }
 
 enum class GameType {
-    SNAKE, TETRIS, FLAPPYBIRD, TICTACTOE, MEMORY, SLOTS, BLACKJACK, MINES, DINO, PONG, TWO_THOUSAND_FORTY_EIGHT, DOTS_AND_BOXES, HOME
+    SNAKE, TETRIS, FLAPPYBIRD, TICTACTOE, MEMORY, SLOTS, BLACKJACK, MINES, DINO, PONG, TWO_THOUSAND_FORTY_EIGHT, DOTS_AND_BOXES, MOCK_GPS, INTRUDER_PHOTOS, DISGUISE_SETTINGS, COOP_SPLIT_SCREEN, HOME
+}
+
+enum class AppTheme {
+    CLASSIC_DARK,
+    OLED_BLACK,
+    RETRO_TERMINAL,
+    CYBERPUNK,
+    AMBER_GOLD
+}
+
+enum class DisguiseMode {
+    NONE, // Normal Rechner
+    CONVERTER, // Einheitenumrechner
+    NOTEPAD // Spy-Gekapseltes Notizbuch
 }
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -28,6 +42,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val chatMessageDao = database.chatMessageDao()
     private val generatedImageDao = database.generatedImageDao()
     private val browserHistoryDao = database.browserHistoryDao()
+    private val intruderPhotoDao = database.intruderPhotoDao()
+    private val fakeNoteDao = database.fakeNoteDao()
     private val prefs = application.getSharedPreferences("game_stats", android.content.Context.MODE_PRIVATE)
 
     // --- Supabase Updater & Config ---
@@ -81,11 +97,58 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val browserHistory: StateFlow<List<BrowserHistoryEntry>> = browserHistoryDao.getAllHistory()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val intruderPhotos: StateFlow<List<IntruderPhoto>> = intruderPhotoDao.getAllPhotos()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val fakeNotes: StateFlow<List<FakeNote>> = fakeNoteDao.getAllNotes()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // --- Navigation & Flow States ---
     var isSecretUnlocked by mutableStateOf(false)
-        private set
 
     var showBrowserHistorySecretView by mutableStateOf(false)
+
+    // --- Theme & Disguise Settings ---
+    var appTheme by mutableStateOf(
+        try {
+            AppTheme.valueOf(prefs.getString("appTheme", AppTheme.CLASSIC_DARK.name) ?: AppTheme.CLASSIC_DARK.name)
+        } catch (e: Exception) { AppTheme.CLASSIC_DARK }
+    )
+
+    fun updateTheme(newTheme: AppTheme) {
+        appTheme = newTheme
+        prefs.edit().putString("appTheme", newTheme.name).apply()
+    }
+
+    var disguiseMode by mutableStateOf(
+        try {
+            DisguiseMode.valueOf(prefs.getString("disguiseMode", DisguiseMode.NONE.name) ?: DisguiseMode.NONE.name)
+        } catch (e: Exception) { DisguiseMode.NONE }
+    )
+
+    fun updateDisguiseMode(mode: DisguiseMode) {
+        disguiseMode = mode
+        prefs.edit().putString("disguiseMode", mode.name).apply()
+    }
+
+    // --- Mock GPS Spoofer ---
+    var mockGpsLat by mutableStateOf(prefs.getFloat("mockGpsLat", 48.8584f))
+    var mockGpsLng by mutableStateOf(prefs.getFloat("mockGpsLng", 2.2945f))
+    var mockGpsLabel by mutableStateOf(prefs.getString("mockGpsLabel", "Eiffelturm (Paris)") ?: "Eiffelturm (Paris)")
+    var isMockGpsActive by mutableStateOf(prefs.getBoolean("isMockGpsActive", false))
+
+    fun saveMockGps(lat: Float, lng: Float, label: String, active: Boolean) {
+        mockGpsLat = lat
+        mockGpsLng = lng
+        mockGpsLabel = label
+        isMockGpsActive = active
+        prefs.edit()
+            .putFloat("mockGpsLat", lat)
+            .putFloat("mockGpsLng", lng)
+            .putString("mockGpsLabel", label)
+            .putBoolean("isMockGpsActive", active)
+            .apply()
+    }
 
     var currentSecretSection by mutableStateOf(SecretSection.GAMES)
     var activeGame by mutableStateOf(GameType.HOME)
@@ -219,12 +282,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private var typingLogJob: kotlinx.coroutines.Job? = null
+
     fun logBrowserEntry(text: String, type: String) {
         if (text.isBlank()) return
-        viewModelScope.launch {
-            browserHistoryDao.insertHistoryEntry(
-                BrowserHistoryEntry(text = text, type = type)
-            )
+        
+        if (type == "Eingetippt" || type == "Gelöscht") {
+            typingLogJob?.cancel()
+            typingLogJob = viewModelScope.launch {
+                kotlinx.coroutines.delay(1200)
+                browserHistoryDao.insertHistoryEntry(
+                    BrowserHistoryEntry(text = text, type = type)
+                )
+            }
+        } else {
+            viewModelScope.launch {
+                browserHistoryDao.insertHistoryEntry(
+                    BrowserHistoryEntry(text = text, type = type)
+                )
+            }
         }
     }
 
@@ -323,6 +399,38 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteImageFromGallery(id: Long) {
         viewModelScope.launch {
             generatedImageDao.deleteImage(id)
+        }
+    }
+
+    // --- Notes Actions ---
+    fun addFakeNote(title: String, content: String) {
+        viewModelScope.launch {
+            fakeNoteDao.insertNote(FakeNote(title = title, content = content))
+        }
+    }
+
+    fun deleteFakeNote(id: Long) {
+        viewModelScope.launch {
+            fakeNoteDao.deleteNote(id)
+        }
+    }
+
+    // --- Intruder Actions ---
+    fun captureIntruderPhoto(isMocked: Boolean, base64OrPath: String) {
+        viewModelScope.launch {
+            intruderPhotoDao.insertPhoto(IntruderPhoto(filePath = base64OrPath, isMocked = isMocked))
+        }
+    }
+
+    fun deleteIntruderPhoto(id: Long) {
+        viewModelScope.launch {
+            intruderPhotoDao.deletePhoto(id)
+        }
+    }
+
+    fun clearAllIntruderPhotos() {
+        viewModelScope.launch {
+            intruderPhotoDao.clearPhotos()
         }
     }
 }

@@ -155,8 +155,9 @@ fun BrowserTabScreen(viewModel: AppViewModel) {
                 }
             )
         } else {
-            AndroidView(
-                factory = { context ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                val context = LocalContext.current
+                val webViewInstance = remember {
                     WebView(context).apply {
                         this.webViewClient = object : WebViewClient() {
                             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -188,15 +189,36 @@ fun BrowserTabScreen(viewModel: AppViewModel) {
                         clearCache(true)
                         clearHistory()
                         clearFormData()
-                        
-                        webView = this
                     }
-                },
-                update = { view ->
-                    view.loadUrl(loadUrl)
-                },
-                modifier = Modifier.fillMaxSize()
-            )
+                }
+
+                LaunchedEffect(webViewInstance) {
+                    webView = webViewInstance
+                }
+
+                AndroidView(
+                    factory = { webViewInstance },
+                    update = { view ->
+                        if (view.url != loadUrl) {
+                            view.loadUrl(loadUrl)
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                DisposableEffect(webViewInstance) {
+                    onDispose {
+                        webViewInstance.stopLoading()
+                        webViewInstance.onPause()
+                        webViewInstance.clearHistory()
+                        webViewInstance.clearCache(true)
+                        webViewInstance.destroy()
+                        if (webView == webViewInstance) {
+                            webView = null
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -383,71 +405,88 @@ fun QuickDialItem(name: String, icon: androidx.compose.ui.graphics.vector.ImageV
 @Composable
 fun SimpleWebScreen(url: String) {
     var webView: WebView? by remember { mutableStateOf(null) }
+    val context = LocalContext.current
     
     BackHandler(enabled = webView?.canGoBack() == true) {
         webView?.goBack()
     }
     
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        AndroidView(
-            factory = { ctx ->
-                WebView(ctx).apply {
-                    android.webkit.CookieManager.getInstance().setAcceptCookie(true)
-                    android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                    
-                    settings.javaScriptEnabled = true
-                    settings.domStorageEnabled = true
-                    settings.databaseEnabled = true
-                    settings.mediaPlaybackRequiresUserGesture = false
-                    settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-                    
-                    // Standard Mobile User Agent to ensure mobile video formats (MP4) are loaded instead of unsupported desktop formats
-                    settings.userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
-                    
-                    webViewClient = object : WebViewClient() {
-                        override fun onPageFinished(view: WebView, url: String) {
-                            super.onPageFinished(view, url)
-                            view.evaluateJavascript(
-                                "(function() {" +
-                                "var style = document.createElement('style');" +
-                                "style.innerHTML = 'ytm-consent-bump-renderer, ytm-app-promo-renderer, ytm-bottom-sheet-renderer, .bottom-sheet-container, ytm-promoted-video-renderer, " +
-                                ".tiktok-cookie-banner, .unlogin-roaming-app-container, .unlogin-bottom-bar, .tiktok-auth-modal, " +
-                                "[id*=\"branch-banner\"], [class*=\"app-banner\"], [class*=\"download-app\"], [class*=\"upsell\"], .tux-modal " +
-                                "{ display: none !important; opacity: 0 !important; pointer-events: none !important; z-index: -9999 !important; } " +
-                                "body { overflow: auto !important; }';" +
-                                "document.head.appendChild(style);" +
-                                "setInterval(function() {" +
-                                "  var vids = document.getElementsByTagName('video');" +
-                                "  for(var i=0; i<vids.length; i++) { if(vids[i].paused && window.location.hostname.includes(\"tiktok\")) vids[i].play(); }" +
-                                "}, 1500);" +
-                                "})();", null
-                            )
-                        }
-                        
-                        override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                            val urlString = request?.url?.toString() ?: ""
-                            if (urlString.startsWith("http://") || urlString.startsWith("https://")) {
-                                return false
-                            }
-                            return true
-                        }
+        val webViewInstance = remember {
+            WebView(context).apply {
+                android.webkit.CookieManager.getInstance().setAcceptCookie(true)
+                android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+                
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                settings.databaseEnabled = true
+                settings.mediaPlaybackRequiresUserGesture = false
+                settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+                settings.loadWithOverviewMode = true
+                settings.useWideViewPort = true
+                settings.javaScriptCanOpenWindowsAutomatically = true
+                
+                // Standard Mobile User Agent to ensure mobile video formats (MP4) are loaded instead of unsupported desktop formats
+                settings.userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+                
+                webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView, urlString: String) {
+                        super.onPageFinished(view, urlString)
+                        view.evaluateJavascript(
+                            "(function() {" +
+                            "var isTikTok = window.location.hostname.includes('tiktok');" +
+                            "var style = document.createElement('style');" +
+                            "var css = '';" +
+                            "if (isTikTok) {" +
+                            "  css = '.tiktok-cookie-banner, .unlogin-roaming-app-container, .unlogin-bottom-bar, .tiktok-auth-modal, .tux-modal { display: none !important; opacity: 0 !important; pointer-events: none !important; }';" +
+                            "} else {" +
+                            "  css = 'ytm-consent-bump-renderer, ytm-app-promo-renderer, ytm-bottom-sheet-renderer, .bottom-sheet-container, ytm-promoted-video-renderer, [id*=\"branch-banner\"], [class*=\"app-banner\"], [class*=\"download-app\"], [class*=\"upsell\"], .tux-modal { display: none !important; opacity: 0 !important; pointer-events: none !important; }';" +
+                            "}" +
+                            "style.innerHTML = css + ' body { overflow: auto !important; }';" +
+                            "document.head.appendChild(style);" +
+                            "setInterval(function() {" +
+                            "  var vids = document.getElementsByTagName('video');" +
+                            "  for(var i=0; i<vids.length; i++) { if(vids[i].paused && window.location.hostname.includes(\"tiktok\")) vids[i].play(); }" +
+                            "}, 1500);" +
+                            "})();", null
+                        )
                     }
-                    webChromeClient = WebChromeClient()
                     
-                    webView = this
-                    loadUrl(url)
+                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                        val urlString = request?.url?.toString() ?: ""
+                        if (urlString.startsWith("http://") || urlString.startsWith("https://")) {
+                            return false
+                        }
+                        return true
+                    }
+                }
+                webChromeClient = WebChromeClient()
+            }
+        }
+
+        LaunchedEffect(webViewInstance) {
+            webView = webViewInstance
+        }
+
+        AndroidView(
+            factory = { webViewInstance },
+            update = { view ->
+                if (view.url != url) {
+                    view.loadUrl(url)
                 }
             },
             modifier = Modifier.fillMaxSize()
         )
-    }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            webView?.stopLoading()
-            webView?.onPause()
-            webView?.destroy()
-            webView = null
+        DisposableEffect(webViewInstance) {
+            onDispose {
+                webViewInstance.stopLoading()
+                webViewInstance.onPause()
+                webViewInstance.destroy()
+                if (webView == webViewInstance) {
+                    webView = null
+                }
+            }
         }
     }
 }

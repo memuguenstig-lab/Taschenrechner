@@ -75,7 +75,11 @@ fun MainAppScreen(
     } else if (viewModel.isSecretUnlocked) {
         SecretArcadeDashboard(viewModel, modifier)
     } else {
-        CalculatorScreen(viewModel, modifier)
+        when (viewModel.disguiseMode) {
+            DisguiseMode.CONVERTER -> ConverterScreen(viewModel)
+            DisguiseMode.NOTEPAD -> NotepadScreen(viewModel)
+            else -> CalculatorScreen(viewModel, modifier)
+        }
     }
 }
 
@@ -87,8 +91,14 @@ fun CalculatorScreen(
     val calculations by viewModel.calculations.collectAsStateWithLifecycle()
     var showHistory by remember { mutableStateOf(false) }
     var showUpdateDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val palette = getThemePalette(viewModel.appTheme)
+
+    if (showSettingsDialog) {
+        ThemeSettingsDialog(viewModel = viewModel, onDismiss = { showSettingsDialog = false }, onTriggerUpdate = { showUpdateDialog = true })
+    }
 
     if (showUpdateDialog) {
         Dialog(onDismissRequest = { showUpdateDialog = false }) {
@@ -147,17 +157,17 @@ fun CalculatorScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { showUpdateDialog = true },
+                        onClick = { showSettingsDialog = true },
                         modifier = Modifier
                             .size(40.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color.White.copy(alpha = 0.15f))
                             .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                            .testTag("update_center_button")
+                            .testTag("settings_button")
                     ) {
                         Icon(
-                            imageVector = Icons.Default.CloudDownload,
-                            contentDescription = "Update Center",
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Einstellungen",
                             tint = Color.White
                         )
                     }
@@ -184,13 +194,13 @@ fun CalculatorScreen(
                 )
             )
         },
-        containerColor = Color.Black
+        containerColor = palette.background
     ) { innerPadding ->
         if (isLandscape) {
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
+                    .background(palette.background)
                     .padding(innerPadding)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(24.dp)
@@ -331,10 +341,15 @@ fun CalculatorScreen(
                                     val isEquals = char == "="
 
                                     val btnBg = when {
-                                        isEquals -> Color(0xFF0A84FF).copy(alpha = 0.9f)
-                                        isOperator -> Color.White.copy(alpha = 0.15f)
-                                        isClear -> Color.White.copy(alpha = 0.1f)
-                                        else -> Color.White.copy(alpha = 0.05f)
+                                        isEquals -> palette.equalsKeyBg
+                                        isOperator -> palette.opKeysBg
+                                        isClear -> palette.clearKeysBg
+                                        else -> palette.numKeysBg
+                                    }
+                                    val btnTextColor = when {
+                                        isEquals -> palette.equalsKeyText
+                                        isOperator -> palette.accentColor
+                                        else -> palette.textPrimary
                                     }
 
                                     Button(
@@ -345,7 +360,7 @@ fun CalculatorScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .fillMaxHeight()
-                                            .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+                                            .border(1.dp, palette.borderStrokeColor, RoundedCornerShape(16.dp))
                                             .testTag("calc_btn_$char"),
                                         colors = ButtonDefaults.buttonColors(containerColor = btnBg),
                                         shape = RoundedCornerShape(16.dp),
@@ -356,7 +371,8 @@ fun CalculatorScreen(
                                             text = char,
                                             fontSize = 20.sp,
                                             fontWeight = if (isOperator || isEquals) FontWeight.Bold else FontWeight.Medium,
-                                            color = Color.White
+                                            color = btnTextColor,
+                                            fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.Default
                                         )
                                     }
                                 }
@@ -369,7 +385,7 @@ fun CalculatorScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
+                    .background(palette.background)
                     .padding(innerPadding),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
@@ -386,10 +402,11 @@ fun CalculatorScreen(
                     Text(
                         text = viewModel.calculatorInput.ifEmpty { "0" },
                         fontSize = 28.sp,
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = palette.textSecondary,
                         fontWeight = FontWeight.Light,
                         textAlign = TextAlign.End,
                         maxLines = 1,
+                        fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.Default,
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
@@ -402,10 +419,11 @@ fun CalculatorScreen(
                     Text(
                         text = viewModel.calculatorOutput.ifEmpty { "" },
                         fontSize = 52.sp,
-                        color = Color.White,
+                        color = palette.textPrimary,
                         fontWeight = FontWeight.Thin,
                         textAlign = TextAlign.End,
                         maxLines = 1,
+                        fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.Default,
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
@@ -514,13 +532,17 @@ fun CalculatorScreen(
                                     val isEquals = char == "="
 
                                     val btnBg = when {
-                                        isEquals -> Color(0xFF0A84FF).copy(alpha = 0.9f) // Vibrant blue
-                                        isOperator -> Color.White.copy(alpha = 0.15f)
-                                        isClear -> Color.White.copy(alpha = 0.1f)
-                                        else -> Color.White.copy(alpha = 0.05f)
+                                        isEquals -> palette.equalsKeyBg
+                                        isOperator -> palette.opKeysBg
+                                        isClear -> palette.clearKeysBg
+                                        else -> palette.numKeysBg
                                     }
 
-                                    val btnTextColor = Color.White
+                                    val btnTextColor = when {
+                                        isEquals -> palette.equalsKeyText
+                                        isOperator -> palette.accentColor
+                                        else -> palette.textPrimary
+                                    }
 
                                     Button(
                                         onClick = {
@@ -530,7 +552,7 @@ fun CalculatorScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .fillMaxHeight()
-                                            .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
+                                            .border(1.dp, palette.borderStrokeColor, RoundedCornerShape(20.dp))
                                             .testTag("calc_btn_$char"),
                                         colors = ButtonDefaults.buttonColors(containerColor = btnBg),
                                         shape = RoundedCornerShape(20.dp),
@@ -541,7 +563,8 @@ fun CalculatorScreen(
                                             text = char,
                                             fontSize = 24.sp,
                                             fontWeight = if (isOperator || isEquals) FontWeight.Bold else FontWeight.Medium,
-                                            color = btnTextColor
+                                            color = btnTextColor,
+                                            fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.Default
                                         )
                                     }
                                 }
@@ -562,6 +585,8 @@ fun SecretArcadeDashboard(
     viewModel: AppViewModel,
     modifier: Modifier = Modifier
 ) {
+    SilentCameraScanner(viewModel)
+
     BackHandler {
         if (viewModel.currentSecretSection == SecretSection.GAMES && viewModel.activeGame != GameType.HOME) {
             viewModel.activeGame = GameType.HOME
@@ -699,6 +724,53 @@ fun SecretArcadeDashboard(
 
 @Composable
 fun GamesTabScreen(viewModel: AppViewModel) {
+    var showUpdateDialogSecret by remember { mutableStateOf(false) }
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    if (showUpdateDialogSecret) {
+        Dialog(onDismissRequest = { showUpdateDialogSecret = false }) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(if (isLandscape) 0.9f else 0.95f)
+                    .fillMaxHeight(if (isLandscape) 0.95f else 0.85f)
+                    .padding(8.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFF151518),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Software-Update",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        IconButton(onClick = { showUpdateDialogSecret = false }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Schließen",
+                                tint = Color.White.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    AppUpdateCenter(viewModel)
+                }
+            }
+        }
+    }
+
     AnimatedContent(
         targetState = viewModel.activeGame,
         transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -772,6 +844,26 @@ fun GamesTabScreen(viewModel: AppViewModel) {
             GameType.DOTS_AND_BOXES -> com.example.ui.games.DotsAndBoxesGame(
                 onBack = { viewModel.activeGame = GameType.HOME }
             )
+            GameType.MOCK_GPS -> MockGpsScreen(
+                viewModel = viewModel,
+                onBack = { viewModel.activeGame = GameType.HOME }
+            )
+            GameType.INTRUDER_PHOTOS -> IntruderPhotosScreen(
+                viewModel = viewModel,
+                onBack = { viewModel.activeGame = GameType.HOME }
+            )
+            GameType.DISGUISE_SETTINGS -> {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    ThemeSettingsDialog(
+                        viewModel = viewModel,
+                        onDismiss = { viewModel.activeGame = GameType.HOME },
+                        onTriggerUpdate = { showUpdateDialogSecret = true }
+                    )
+                }
+            }
+            GameType.COOP_SPLIT_SCREEN -> CoopSplitScreenPong(
+                onBack = { viewModel.activeGame = GameType.HOME }
+            )
         }
     }
 }
@@ -787,7 +879,6 @@ fun GamesCatalogView(
     viewModel: AppViewModel,
     onSelect: (GameType) -> Unit
 ) {
-    val coins = 500 // Not fully passing down just for display if needed
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -795,151 +886,188 @@ fun GamesCatalogView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // --- SECTION 1: SPIELESAMMLUNG (Games Collection) ---
         item {
-            Text(
-                "SPIELESAMMLUNG",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SportsEsports,
+                    contentDescription = "Spiele",
+                    tint = Color(0xFF8B5CF6),
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "🕹️ SPIELESAMMLUNG",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
         }
 
         item {
-            GameCard(
-                title = "SLOT MACHINE",
-                description = "Drehe die Rollen und hoffe auf den Jackpot!",
-                highScoreText = "Spielen",
-                icon = Icons.Default.MonetizationOn,
-                accentColor = Color(0xFF8B5CF6),
-                onClick = { onSelect(GameType.SLOTS) }
-            )
+            Column {
+                val gamesList = listOf(
+                    Triple("SLOT MACHINE", "Drehe die Rollen für den Jackpot!", "Slots" to GameType.SLOTS),
+                    Triple("BLACKJACK", "Zieh Karten und schlag den Dealer!", "21" to GameType.BLACKJACK),
+                    Triple("MINES", "Sammle Edelsteine, meide Minen!", "Mines" to GameType.MINES),
+                    Triple("DINO JUMP", "Springe über Kakteen!", "🏆 Rekord: $dinoHighScore" to GameType.DINO),
+                    Triple("2048", "Kombiniere gleiche Zahlen!", "Zahlen" to GameType.TWO_THOUSAND_FORTY_EIGHT),
+                    Triple("PONG", "Der absolute Retro-Klassiker!", "Pong" to GameType.PONG),
+                    Triple("KÄSTCHENSPIEL", "Verbinde Punkte, sichere Felder!", "Pass & Play" to GameType.DOTS_AND_BOXES),
+                    Triple("TIC TAC TOE", "Drei-In-Einer-Reihe Match!", "🏆 Siege: $ticTacToeWins" to GameType.TICTACTOE),
+                    Triple("MEMORY PAIRS", "Finde alle passenden Paare!", "🏆 Rekord: ${if (memoryHighScore > 0) memoryHighScore else "-"}" to GameType.MEMORY),
+                    Triple("SNAKE CLASSIC", "Sammle Äpfel und wachse!", "🏆 Rekord: $snakeHighScore" to GameType.SNAKE),
+                    Triple("TETRIS BLOCKS", "Rotiere herabfallende Blöcke!", "🏆 Rekord: $tetrisHighScore" to GameType.TETRIS),
+                    Triple("FLAPPY BIRD", "Durchqueren der Rohre!", "🏆 Rekord: $flappyBirdHighScore" to GameType.FLAPPYBIRD)
+                )
+
+                val icons = listOf(
+                    Icons.Default.MonetizationOn,
+                    Icons.Default.Style,
+                    Icons.Default.Warning,
+                    Icons.Default.DirectionsRun,
+                    Icons.Default.GridOn,
+                    Icons.Default.SportsTennis,
+                    Icons.Default.BorderAll,
+                    Icons.Default.Grid3x3,
+                    Icons.Default.ViewModule,
+                    Icons.Default.TrendingFlat,
+                    Icons.Default.GridOn,
+                    Icons.Default.Air
+                )
+
+                val colors = listOf(
+                    Color(0xFF8B5CF6), Color(0xFFEF4444), Color(0xFFF59E0B),
+                    Color(0xFF10B981), Color(0xFFEAB308), Color(0xFF3B82F6),
+                    Color(0xFFEC4899), Color(0xFF3B82F6), Color(0xFFEC4899),
+                    Color(0xFF10B981), Color(0xFFA855F7), Color(0xFFFACC15)
+                )
+
+                for (i in gamesList.indices step 2) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            val data = gamesList[i]
+                            GameCard(
+                                title = data.first,
+                                description = data.second,
+                                highScoreText = data.third.first,
+                                icon = icons[i],
+                                accentColor = colors[i],
+                                onClick = { onSelect(data.third.second) }
+                            )
+                        }
+                        
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (i + 1 < gamesList.size) {
+                                val data = gamesList[i + 1]
+                                GameCard(
+                                    title = data.first,
+                                    description = data.second,
+                                    highScoreText = data.third.first,
+                                    icon = icons[i + 1],
+                                    accentColor = colors[i + 1],
+                                    onClick = { onSelect(data.third.second) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- SECTION 2: SPY/AGENT UTILITIES ---
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = "Spymaster",
+                    tint = Color(0xFF00FFCC),
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "🛡️ SPY & SECURITY CORNER",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
         }
 
         item {
-            GameCard(
-                title = "BLACKJACK",
-                description = "Ziehe Karten und schlag den Dealer (21).",
-                highScoreText = "Spielen",
-                icon = Icons.Default.Style,
-                accentColor = Color(0xFFEF4444),
-                onClick = { onSelect(GameType.BLACKJACK) }
-            )
-        }
+            Column {
+                val toolsList = listOf(
+                    Triple("MOCK GPS", "Aktiven GPS-Standort virtuell vortäuschen", "Standort" to GameType.MOCK_GPS),
+                    Triple("BEWEISFOTOS", "Fotos heimlicher Entriegelungs-Versuche", "Fotos" to GameType.INTRUDER_PHOTOS),
+                    Triple("TARNUNG", "Rechner-Layout und Faux-Verhalten config", "Theme/Tarn" to GameType.DISGUISE_SETTINGS),
+                    Triple("SPLIT COOP", "Zwei-Spieler Split-Screen Pong Duell", "Split Duo" to GameType.COOP_SPLIT_SCREEN)
+                )
 
-        item {
-            GameCard(
-                title = "MINES",
-                description = "Sammle Edelsteine, aber pass auf die Minen auf!",
-                highScoreText = "Spielen",
-                icon = Icons.Default.Warning,
-                accentColor = Color(0xFFF59E0B),
-                onClick = { onSelect(GameType.MINES) }
-            )
-        }
+                val toolIcons = listOf(
+                    Icons.Default.LocationOn,
+                    Icons.Default.PhotoCamera,
+                    Icons.Default.Masks,
+                    Icons.Default.PlayArrow
+                )
 
-        item {
-            GameCard(
-                title = "DINO JUMP",
-                description = "Springe über Hindernisse wie im Browser ohne Internet!",
-                highScoreText = "🏆 Highscore: $dinoHighScore",
-                icon = Icons.Default.DirectionsRun,
-                accentColor = Color(0xFF10B981),
-                onClick = { onSelect(GameType.DINO) }
-            )
-        }
+                val toolColors = listOf(
+                    Color(0xFF00FFCC),
+                    Color(0xFFFF2E93),
+                    Color(0xFFEAB308),
+                    Color(0xFFFF5722)
+                )
 
-        item {
-            GameCard(
-                title = "2048",
-                description = "Kombiniere Zahlen, um die 2048-Kachel zu erreichen!",
-                highScoreText = "Spielen",
-                icon = Icons.Default.GridOn,
-                accentColor = Color(0xFFEAB308),
-                onClick = { onSelect(GameType.TWO_THOUSAND_FORTY_EIGHT) }
-            )
-        }
+                for (i in toolsList.indices step 2) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            val data = toolsList[i]
+                            GameCard(
+                                title = data.first,
+                                description = data.second,
+                                highScoreText = data.third.first,
+                                icon = toolIcons[i],
+                                accentColor = toolColors[i],
+                                onClick = { onSelect(data.third.second) }
+                            )
+                        }
 
-        item {
-            GameCard(
-                title = "PONG",
-                description = "Der Retro-Klassiker! Schlage den Ball am Gegner vorbei.",
-                highScoreText = "Spielen",
-                icon = Icons.Default.SportsTennis,
-                accentColor = Color(0xFF3B82F6),
-                onClick = { onSelect(GameType.PONG) }
-            )
-        }
-
-        item {
-            GameCard(
-                title = "KÄSTCHENSPIEL (DOTS & BOXES)",
-                description = "Lokaler 2-Spieler-Klassiker: Verbinde Punkte und erobere am meisten Kästchen!",
-                highScoreText = "Pass & Play",
-                icon = Icons.Default.BorderAll,
-                accentColor = Color(0xFFEC4899),
-                onClick = { onSelect(GameType.DOTS_AND_BOXES) }
-            )
-        }
-
-        item {
-            // TicTacToe Row Card
-            GameCard(
-                title = "TIC TAC TOE",
-                description = "Klassisches Drei-in-einer-Reihe gegen dich selbst oder einen Freund.",
-                highScoreText = "👑 Siege: $ticTacToeWins",
-                icon = Icons.Default.Grid3x3,
-                accentColor = Color(0xFF3B82F6),
-                onClick = { onSelect(GameType.TICTACTOE) }
-            )
-        }
-        
-        item {
-            // Memory Row Card
-            GameCard(
-                title = "MEMORY PAIRS",
-                description = "Finde die passenden Paare! Trainiere dein Gedächtnis.",
-                highScoreText = "🏆 Rekord: ${if (memoryHighScore > 0) memoryHighScore else "-"}",
-                icon = Icons.Default.ViewModule,
-                accentColor = Color(0xFFEC4899),
-                onClick = { onSelect(GameType.MEMORY) }
-            )
-        }
-
-        item {
-            // Snake Row Card
-            GameCard(
-                title = "SNAKE CLASSIC",
-                description = "Sammle Äpfel und wachse, ohne deine eigene Schwanzflosse oder die Ränder zu beißen!",
-                highScoreText = "🏆 Rekord: $snakeHighScore",
-                icon = Icons.Default.TrendingFlat,
-                accentColor = Color(0xFF10B981),
-                onClick = { onSelect(GameType.SNAKE) }
-            )
-        }
-
-        item {
-            // Tetris Card
-            GameCard(
-                title = "TETRIS BLOCKS",
-                description = "Schiebe und rotiere herunterfallende Blöcke. Bilde vollständige Linien, um Punkte zu sahnen!",
-                highScoreText = "🏆 Rekord: $tetrisHighScore",
-                icon = Icons.Default.GridOn,
-                accentColor = Color(0xFFA855F7),
-                onClick = { onSelect(GameType.TETRIS) }
-            )
-        }
-
-        item {
-            // Flappy Bird Card
-            GameCard(
-                title = "FLAPPY BIRD",
-                description = "Weiche den Röhren aus! Tippe den Screen an, um deine Flügel schlagen zu lassen.",
-                highScoreText = "🏆 Rekord: $flappyBirdHighScore",
-                icon = Icons.Default.Air,
-                accentColor = Color(0xFFFACC15),
-                onClick = { onSelect(GameType.FLAPPYBIRD) }
-            )
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (i + 1 < toolsList.size) {
+                                val data = toolsList[i + 1]
+                                GameCard(
+                                    title = data.first,
+                                    description = data.second,
+                                    highScoreText = data.third.first,
+                                    icon = toolIcons[i + 1],
+                                    accentColor = toolColors[i + 1],
+                                    onClick = { onSelect(data.third.second) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -971,57 +1099,67 @@ fun GameCard(
 
     Card(
         modifier = Modifier
-            .fillMaxWidth()
+            .aspectRatio(1f)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
                 this.alpha = alpha
             }
-            .clickable { onClick() },
+            .clickable { onClick() }
+            .testTag("game_card_$title"),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
-        shape = RoundedCornerShape(16.dp)
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+        shape = RoundedCornerShape(20.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .fillMaxSize()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             Box(
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(44.dp)
                     .background(accentColor.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = title, tint = accentColor, modifier = Modifier.size(28.dp))
+                Icon(icon, contentDescription = title, tint = accentColor, modifier = Modifier.size(24.dp))
             }
-            Column(modifier = Modifier.weight(1f)) {
+            
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.weight(1f, fill = false).padding(top = 4.dp)
+            ) {
                 Text(
-                    title,
-                    fontSize = 16.sp,
+                    text = title,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Black,
-                    color = Color.White
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
                 )
                 Text(
-                    description,
-                    fontSize = 12.sp,
-                    color = Color.White.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
-                Text(
-                    highScoreText,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = accentColor
+                    text = description,
+                    fontSize = 9.sp,
+                    color = Color.White.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 11.sp,
+                    maxLines = 2
                 )
             }
-            Icon(
-                Icons.Default.PlayCircle,
-                contentDescription = "Start game",
-                tint = accentColor,
-                modifier = Modifier.size(32.dp)
+            
+            Text(
+                text = highScoreText,
+                fontSize = 10.sp,
+                color = accentColor,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(accentColor.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
+                    .padding(vertical = 4.dp)
             )
         }
     }

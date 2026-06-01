@@ -35,3 +35,19 @@ data class BrowserHistoryEntry(
     val timestamp: Long = System.currentTimeMillis(),
     val type: String // "typed" or "searched"
 )
+
+@Entity(tableName = "intruder_photos")
+data class IntruderPhoto(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val filePath: String,
+    val isMocked: Boolean = false,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "fake_notes")
+data class FakeNote(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val content: String,
+    val timestamp: Long = System.currentTimeMillis()
+)

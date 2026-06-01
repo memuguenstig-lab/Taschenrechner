@@ -50,3 +50,30 @@ interface BrowserHistoryDao {
     @Query("DELETE FROM browser_history")
     suspend fun clearHistory()
 }
+
+@Dao
+interface IntruderPhotoDao {
+    @Query("SELECT * FROM intruder_photos ORDER BY timestamp DESC")
+    fun getAllPhotos(): Flow<List<IntruderPhoto>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPhoto(photo: IntruderPhoto)
+
+    @Query("DELETE FROM intruder_photos WHERE id = :id")
+    suspend fun deletePhoto(id: Long)
+
+    @Query("DELETE FROM intruder_photos")
+    suspend fun clearPhotos()
+}
+
+@Dao
+interface FakeNoteDao {
+    @Query("SELECT * FROM fake_notes ORDER BY timestamp DESC")
+    fun getAllNotes(): Flow<List<FakeNote>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertNote(note: FakeNote)
+
+    @Query("DELETE FROM fake_notes WHERE id = :id")
+    suspend fun deleteNote(id: Long)
+}
