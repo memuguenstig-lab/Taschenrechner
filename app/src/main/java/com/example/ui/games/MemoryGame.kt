@@ -34,11 +34,19 @@ fun MemoryGame(
     var moves by remember { mutableStateOf(0) }
     var isWin by remember { mutableStateOf(false) }
 
+    // --- Multiplayer States ---
+    var isMultiplayer by remember { mutableStateOf(false) }
+    var activePlayer by remember { mutableStateOf(1) }
+    var player1Pairs by remember { mutableStateOf(0) }
+    var player2Pairs by remember { mutableStateOf(0) }
+
     val checkWin = {
         if (cards.all { it.isMatched }) {
             isWin = true
-            if (highScore == 0 || moves < highScore) {
-                onHighScoreUpdate(moves)
+            if (!isMultiplayer) {
+                if (highScore == 0 || moves < highScore) {
+                    onHighScoreUpdate(moves)
+                }
             }
         }
     }
@@ -61,6 +69,15 @@ fun MemoryGame(
                     matchedCards[index] = matchedCards[index].copy(isMatched = true)
                     cards = matchedCards
                     firstSelected = null
+                    
+                    if (isMultiplayer) {
+                        if (activePlayer == 1) {
+                            player1Pairs++
+                        } else {
+                            player2Pairs++
+                        }
+                    }
+                    
                     checkWin()
                 } else {
                     // No match
@@ -73,6 +90,10 @@ fun MemoryGame(
                         cards = resetCards
                         firstSelected = null
                         stopClicks = false
+                        
+                        if (isMultiplayer) {
+                            activePlayer = if (activePlayer == 1) 2 else 1
+                        }
                     }
                 }
             }
@@ -85,6 +106,9 @@ fun MemoryGame(
         stopClicks = false
         moves = 0
         isWin = false
+        activePlayer = 1
+        player1Pairs = 0
+        player2Pairs = 0
     }
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
@@ -111,7 +135,37 @@ fun MemoryGame(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(
+                onClick = { isMultiplayer = false; resetGame() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (!isMultiplayer) Color(0xFF3B5BA9) else Color(0xFFE2E2EC),
+                    contentColor = if (!isMultiplayer) Color.White else Color(0xFF44474E)
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
+                Text("Einzelspieler", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+            Button(
+                onClick = { isMultiplayer = true; resetGame() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isMultiplayer) Color(0xFFEC4899) else Color(0xFFE2E2EC),
+                    contentColor = if (isMultiplayer) Color.White else Color(0xFF44474E)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("2 Spieler (Lokal)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         if (isLandscape) {
             Row(
@@ -134,15 +188,42 @@ fun MemoryGame(
                             .fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Züge: $moves", fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = Color(0xFF44474E))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Bester Score: ${if (highScore > 0) highScore else "-"}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFFEC4899))
+                        if (!isMultiplayer) {
+                            Text("Züge: $moves", fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = Color(0xFF44474E))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Bester Score: ${if (highScore > 0) highScore else "-"}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFFEC4899))
+                        } else {
+                            Text("Am Zug: Spieler $activePlayer", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = if (activePlayer == 1) Color(0xFF3B5BA9) else Color(0xFFEC4899))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceAround
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("Spieler 1", color = Color(0xFF3B5BA9), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text("$player1Pairs Paare", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("Spieler 2", color = Color(0xFFEC4899), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text("$player2Pairs Paare", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                }
+                            }
+                        }
                     }
                     
                     if (isWin) {
                         Spacer(modifier = Modifier.height(16.dp))
+                        val winText = if (!isMultiplayer) {
+                            "Gewonnen in $moves Zügen!"
+                        } else {
+                            when {
+                                player1Pairs > player2Pairs -> "Spieler 1 gewinnt ($player1Pairs vs $player2Pairs)!"
+                                player2Pairs > player1Pairs -> "Spieler 2 gewinnt ($player2Pairs vs $player1Pairs)!"
+                                else -> "Unentschieden ($player1Pairs vs $player2Pairs)!"
+                            }
+                        }
                         Text(
-                            text = "Gewonnen in $moves Zügen!",
+                            text = winText,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF10B981)
@@ -166,15 +247,27 @@ fun MemoryGame(
             }
         } else {
             // Portrait Layout
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Züge: $moves", fontWeight = FontWeight.SemiBold, color = Color(0xFF44474E))
-                Text("Bester: ${if (highScore > 0) highScore else "-"}", fontWeight = FontWeight.Bold, color = Color(0xFFEC4899))
+            if (!isMultiplayer) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Züge: $moves", fontWeight = FontWeight.SemiBold, color = Color(0xFF44474E))
+                    Text("Bester: ${if (highScore > 0) highScore else "-"}", fontWeight = FontWeight.Bold, color = Color(0xFFEC4899))
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("P1: $player1Pairs Paare", color = Color(0xFF3B5BA9), fontWeight = FontWeight.Bold)
+                    Text("Spieler $activePlayer am Zug", color = if (activePlayer == 1) Color(0xFF3B5BA9) else Color(0xFFEC4899), fontWeight = FontWeight.Black)
+                    Text("P2: $player2Pairs Paare", color = Color(0xFFEC4899), fontWeight = FontWeight.Bold)
+                }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1.2f))
 
             MemoryBoardGrid(
                 cards = cards,
@@ -187,8 +280,17 @@ fun MemoryGame(
             Spacer(modifier = Modifier.weight(1f))
 
             if (isWin) {
+                val winText = if (!isMultiplayer) {
+                    "Gewonnen in $moves Zügen!"
+                } else {
+                    when {
+                        player1Pairs > player2Pairs -> "Spieler 1 gewinnt das Duell!"
+                        player2Pairs > player1Pairs -> "Spieler 2 gewinnt das Duell!"
+                        else -> "Unentschieden!"
+                    }
+                }
                 Text(
-                    text = "Gewonnen in $moves Zügen!",
+                    text = winText,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF10B981)

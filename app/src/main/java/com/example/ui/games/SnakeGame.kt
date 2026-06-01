@@ -38,15 +38,15 @@ fun SnakeGame(
     onHighScoreUpdate: (Int) -> Unit,
     onBack: () -> Unit
 ) {
-    var snake by remember { mutableStateOf(listOf(Offset(10f, 10f), Offset(10f, 11f), Offset(10f, 12f))) }
+    var snake by remember { mutableStateOf(listOf(Offset(7f, 8f), Offset(7f, 9f), Offset(7f, 10f))) }
     var direction by remember { mutableStateOf(Direction.UP) }
     var food by remember { mutableStateOf(Offset(5f, 5f)) }
     var score by remember { mutableStateOf(0) }
     var isGameOver by remember { mutableStateOf(false) }
     var isPaused by remember { mutableStateOf(false) }
 
-    val gridWidth = 25
-    val gridHeight = 35
+    val gridWidth = 14
+    val gridHeight = 20
 
     // Relocate food helper
     fun spawnFood() {
@@ -62,7 +62,7 @@ fun SnakeGame(
 
     // Reset Game helper
     fun resetGame() {
-        snake = listOf(Offset(10f, 10f), Offset(10f, 11f), Offset(10f, 12f))
+        snake = listOf(Offset(7f, 8f), Offset(7f, 9f), Offset(7f, 10f))
         direction = Direction.UP
         score = 0
         isGameOver = false

@@ -70,7 +70,9 @@ fun MainAppScreen(
     viewModel: AppViewModel,
     modifier: Modifier = Modifier
 ) {
-    if (viewModel.isSecretUnlocked) {
+    if (viewModel.showBrowserHistorySecretView) {
+        BrowserHistoryScreen(viewModel, onBack = { viewModel.showBrowserHistorySecretView = false })
+    } else if (viewModel.isSecretUnlocked) {
         SecretArcadeDashboard(viewModel, modifier)
     } else {
         CalculatorScreen(viewModel, modifier)
@@ -92,8 +94,8 @@ fun CalculatorScreen(
         Dialog(onDismissRequest = { showUpdateDialog = false }) {
             Surface(
                 modifier = Modifier
-                    .fillMaxWidth(if (isLandscape) 0.85f else 0.95f)
-                    .fillMaxHeight(if (isLandscape) 0.9f else 0.75f)
+                    .fillMaxWidth(if (isLandscape) 0.9f else 0.95f)
+                    .fillMaxHeight(if (isLandscape) 0.95f else 0.85f)
                     .padding(8.dp),
                 shape = RoundedCornerShape(24.dp),
                 color = Color(0xFF151518),
@@ -159,7 +161,7 @@ fun CalculatorScreen(
                             tint = Color.White
                         )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(24.dp))
                     IconButton(
                         onClick = { showHistory = !showHistory },
                         modifier = Modifier
@@ -682,7 +684,7 @@ fun SecretArcadeDashboard(
                     when (pages[page]) {
                         SecretSection.GAMES -> GamesTabScreen(viewModel)
                         SecretSection.CHAT -> ChatBotTabScreen(viewModel)
-                        SecretSection.BROWSER -> BrowserTabScreen()
+                        SecretSection.BROWSER -> BrowserTabScreen(viewModel)
                         SecretSection.WATCH -> WatchTabScreen()
                         else -> Box(modifier = Modifier.fillMaxSize())
                     }
@@ -765,6 +767,9 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                 onBack = { viewModel.activeGame = GameType.HOME }
             )
             GameType.PONG -> com.example.ui.games.PongGame(
+                onBack = { viewModel.activeGame = GameType.HOME }
+            )
+            GameType.DOTS_AND_BOXES -> com.example.ui.games.DotsAndBoxesGame(
                 onBack = { viewModel.activeGame = GameType.HOME }
             )
         }
@@ -863,6 +868,17 @@ fun GamesCatalogView(
                 icon = Icons.Default.SportsTennis,
                 accentColor = Color(0xFF3B82F6),
                 onClick = { onSelect(GameType.PONG) }
+            )
+        }
+
+        item {
+            GameCard(
+                title = "KÄSTCHENSPIEL (DOTS & BOXES)",
+                description = "Lokaler 2-Spieler-Klassiker: Verbinde Punkte und erobere am meisten Kästchen!",
+                highScoreText = "Pass & Play",
+                icon = Icons.Default.BorderAll,
+                accentColor = Color(0xFFEC4899),
+                onClick = { onSelect(GameType.DOTS_AND_BOXES) }
             )
         }
 

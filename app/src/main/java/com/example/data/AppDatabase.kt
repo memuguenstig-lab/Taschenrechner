@@ -6,14 +6,15 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [Calculation::class, ChatMessage::class, GeneratedImage::class],
-    version = 1,
+    entities = [Calculation::class, ChatMessage::class, GeneratedImage::class, BrowserHistoryEntry::class],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun calculationDao(): CalculationDao
     abstract fun chatMessageDao(): ChatMessageDao
     abstract fun generatedImageDao(): GeneratedImageDao
+    abstract fun browserHistoryDao(): BrowserHistoryDao
 
     companion object {
         @Volatile

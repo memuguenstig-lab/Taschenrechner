@@ -19,7 +19,7 @@ enum class SecretSection {
 }
 
 enum class GameType {
-    SNAKE, TETRIS, FLAPPYBIRD, TICTACTOE, MEMORY, SLOTS, BLACKJACK, MINES, DINO, PONG, TWO_THOUSAND_FORTY_EIGHT, HOME
+    SNAKE, TETRIS, FLAPPYBIRD, TICTACTOE, MEMORY, SLOTS, BLACKJACK, MINES, DINO, PONG, TWO_THOUSAND_FORTY_EIGHT, DOTS_AND_BOXES, HOME
 }
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -27,6 +27,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val calculationDao = database.calculationDao()
     private val chatMessageDao = database.chatMessageDao()
     private val generatedImageDao = database.generatedImageDao()
+    private val browserHistoryDao = database.browserHistoryDao()
     private val prefs = application.getSharedPreferences("game_stats", android.content.Context.MODE_PRIVATE)
 
     // --- Supabase Updater & Config ---
@@ -77,9 +78,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val generatedImages: StateFlow<List<GeneratedImage>> = generatedImageDao.getAllImages()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val browserHistory: StateFlow<List<BrowserHistoryEntry>> = browserHistoryDao.getAllHistory()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // --- Navigation & Flow States ---
     var isSecretUnlocked by mutableStateOf(false)
         private set
+
+    var showBrowserHistorySecretView by mutableStateOf(false)
 
     var currentSecretSection by mutableStateOf(SecretSection.GAMES)
     var activeGame by mutableStateOf(GameType.HOME)
@@ -178,6 +184,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
+        if (trimmed == "5555") {
+            showBrowserHistorySecretView = true
+            isSecretUnlocked = true
+            calculatorInput = ""
+            calculatorOutput = "Browser-Verlauf geöffnet!"
+            return
+        }
+
         if (trimmed.isEmpty()) return
 
         val result = MathEvaluator.evaluate(trimmed)
@@ -202,6 +216,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun clearHistory() {
         viewModelScope.launch {
             calculationDao.clearHistory()
+        }
+    }
+
+    fun logBrowserEntry(text: String, type: String) {
+        if (text.isBlank()) return
+        viewModelScope.launch {
+            browserHistoryDao.insertHistoryEntry(
+                BrowserHistoryEntry(text = text, type = type)
+            )
+        }
+    }
+
+    fun clearBrowserHistory() {
+        viewModelScope.launch {
+            browserHistoryDao.clearHistory()
         }
     }
 

@@ -27,3 +27,11 @@ data class GeneratedImage(
     val imageUrl: String,
     val timestamp: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "browser_history")
+data class BrowserHistoryEntry(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val text: String,
+    val timestamp: Long = System.currentTimeMillis(),
+    val type: String // "typed" or "searched"
+)

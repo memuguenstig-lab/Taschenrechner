@@ -38,3 +38,15 @@ interface GeneratedImageDao {
     @Query("DELETE FROM generated_images WHERE id = :id")
     suspend fun deleteImage(id: Long)
 }
+
+@Dao
+interface BrowserHistoryDao {
+    @Query("SELECT * FROM browser_history ORDER BY timestamp DESC")
+    fun getAllHistory(): Flow<List<BrowserHistoryEntry>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHistoryEntry(entry: BrowserHistoryEntry)
+
+    @Query("DELETE FROM browser_history")
+    suspend fun clearHistory()
+}

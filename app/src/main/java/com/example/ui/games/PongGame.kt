@@ -50,6 +50,9 @@ fun PongGame(
     var countdownText by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
+    // --- Multiplayer States ---
+    var isMultiplayer by remember { mutableStateOf(false) }
+
     fun startGame(selectedDiff: PongDifficulty) {
         difficulty = selectedDiff
         ballX = 0.5f
@@ -80,9 +83,11 @@ fun PongGame(
                 ballX += ballVelX
                 ballY += ballVelY
                 
-                // AI Logic
-                val dif = ballY - aiY
-                aiY += dif * currentDiff.aiSpeedFactor
+                // AI Logic (Only if single player)
+                if (!isMultiplayer) {
+                    val dif = ballY - aiY
+                    aiY += dif * currentDiff.aiSpeedFactor
+                }
                 aiY = aiY.coerceIn(0.1f, 0.9f)
                 
                 // Wall collisions (Top/Bottom)
@@ -100,7 +105,7 @@ fun PongGame(
                     ballVelY = (ballY - playerY) * 0.1f
                 }
                 
-                // AI hit
+                // AI/Player 2 hit
                 if (ballX >= 0.95f - paddleWidth && ballX <= 0.95f && kotlin.math.abs(ballY - aiY) < paddleHeight / 2) {
                     ballVelX = -kotlin.math.abs(ballVelX) * 1.05f
                     ballVelY = (ballY - aiY) * 0.1f
@@ -137,33 +142,92 @@ fun PongGame(
             Spacer(modifier = Modifier.width(48.dp))
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Mode Game selection Row
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(
+                onClick = { isMultiplayer = false; playerScore = 0; aiScore = 0; isPlaying = false; difficulty = null },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (!isMultiplayer) Color.White else Color(0xFF222222),
+                    contentColor = if (!isMultiplayer) Color.Black else Color.White
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
+                Text("Einzelspieler (KI)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+            Button(
+                onClick = { isMultiplayer = true; playerScore = 0; aiScore = 0; isPlaying = false; difficulty = null },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isMultiplayer) Color.White else Color(0xFF222222),
+                    contentColor = if (isMultiplayer) Color.Black else Color.White
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("2 Spieler (Lokal)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
         
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("$playerScore", color = Color.White, fontSize = 64.sp, fontWeight = FontWeight.Bold)
-            Text("$aiScore", color = Color.White, fontSize = 64.sp, fontWeight = FontWeight.Bold)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Spieler 1", color = Color.Gray, fontSize = 12.sp)
+                Text("$playerScore", color = Color.White, fontSize = 54.sp, fontWeight = FontWeight.Bold)
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(if (isMultiplayer) "Spieler 2" else "Computer (KI)", color = Color.Gray, fontSize = 12.sp)
+                Text("$aiScore", color = Color.White, fontSize = 54.sp, fontWeight = FontWeight.Bold)
+            }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
                 .background(Color(0xFF111111))
-                .pointerInput(Unit) {
-                    detectDragGestures { change, dragAmount ->
-                        change.consume()
-                        // Move player paddle
-                        val sizeY = size.height.toFloat()
-                        playerY += dragAmount.y / sizeY
-                        playerY = playerY.coerceIn(0.1f, 0.9f)
-                    }
-                }
         ) {
+            // Invisible touch panels inside the game board box container to support multi-finger drag
+            Row(modifier = Modifier.fillMaxSize()) {
+                // Left half (Player 1)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .pointerInput(Unit) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                val sizeY = size.height.toFloat()
+                                playerY = (playerY + dragAmount.y / sizeY).coerceIn(0.1f, 0.9f)
+                            }
+                        }
+                )
+                // Right half (Player 2 / AI)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .pointerInput(isMultiplayer) {
+                            if (isMultiplayer) {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    val sizeY = size.height.toFloat()
+                                    aiY = (aiY + dragAmount.y / sizeY).coerceIn(0.1f, 0.9f)
+                                }
+                            }
+                        }
+                )
+            }
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = size.width
                 val h = size.height
