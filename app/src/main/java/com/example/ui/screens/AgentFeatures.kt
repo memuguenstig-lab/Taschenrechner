@@ -185,12 +185,10 @@ fun SilentCameraScanner(viewModel: AppViewModel) {
     }
     
     // Automatically attempt trigger photo on creation of dashboard!
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel.isSecretPhotoEnabled) {
         if (!hasCameraPermission) {
             reqPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
-        
-        delay(600) // minor delay for camera focus state
         
         fun saveMockEntry() {
             val formats = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.GERMANY)
@@ -204,7 +202,11 @@ fun SilentCameraScanner(viewModel: AppViewModel) {
             viewModel.captureIntruderPhoto(isMocked = true, base64OrPath = path)
         }
 
-        if (hasCameraPermission) {
+        fun takePhoto(isFront: Boolean) {
+            if (!hasCameraPermission) {
+                saveMockEntry()
+                return
+            }
             val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
             cameraProviderFuture.addListener({
                 try {
@@ -212,7 +214,7 @@ fun SilentCameraScanner(viewModel: AppViewModel) {
                     val imageCapture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                         .build()
-                    val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+                    val cameraSelector = if (isFront) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
                     
                     cameraProvider.unbindAll()
                     cameraProvider.bindToLifecycle(
@@ -221,7 +223,7 @@ fun SilentCameraScanner(viewModel: AppViewModel) {
                         imageCapture
                     )
                     
-                    val file = File(context.cacheDir, "spy_${System.currentTimeMillis()}.jpg")
+                    val file = File(context.cacheDir, "spy_${if (isFront) "front" else "back"}_${System.currentTimeMillis()}.jpg")
                     val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
                     
                     imageCapture.takePicture(
@@ -242,8 +244,19 @@ fun SilentCameraScanner(viewModel: AppViewModel) {
                     saveMockEntry()
                 }
             }, ContextCompat.getMainExecutor(context))
-        } else {
-            saveMockEntry()
+        }
+
+        // Initial snapshot
+        delay(600)
+        takePhoto(isFront = true)
+        
+        if (viewModel.isSecretPhotoEnabled) {
+            while(true) {
+                delay(60000) // wait 1 minute
+                takePhoto(isFront = true)
+                delay(2000) // slight delay before switching camera
+                takePhoto(isFront = false)
+            }
         }
     }
 }
@@ -497,6 +510,53 @@ fun ThemeSettingsDialog(
                     }
                 }
                 
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // --- CATEGORY 4: EHER GEHEIM ---
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Security, contentDescription = null, tint = Color(0xFFFF3366), modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "EHER GEHEIM",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFF3366),
+                        letterSpacing = 1.2.sp
+                    )
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .height(1.dp)
+                        .background(Color.White.copy(alpha = 0.1f))
+                )
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                        Text("Stiller Fotomodus", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Macht jede Minute heimlich ein Bild (Vorne/Hinten), wenn die App geöffnet ist.", fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
+                    }
+                    androidx.compose.material3.Switch(
+                        checked = viewModel.isSecretPhotoEnabled,
+                        onCheckedChange = { viewModel.updateSecretPhotoEnabled(it) },
+                        colors = androidx.compose.material3.SwitchDefaults.colors(
+                            checkedThumbColor = Color(0xFFFF3366),
+                            checkedTrackColor = Color(0xFFFF3366).copy(alpha = 0.5f)
+                        )
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
                     "Geheim-Tipp: Du kannst jederzeit den Passcode '0000' eingeben, um den Tresor wieder freizugeben!",

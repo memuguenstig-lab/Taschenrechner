@@ -137,6 +137,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var mockGpsLabel by mutableStateOf(prefs.getString("mockGpsLabel", "Eiffelturm (Paris)") ?: "Eiffelturm (Paris)")
     var isMockGpsActive by mutableStateOf(prefs.getBoolean("isMockGpsActive", false))
 
+    var isSecretPhotoEnabled by mutableStateOf(prefs.getBoolean("isSecretPhotoEnabled", false))
+
+    fun updateSecretPhotoEnabled(enabled: Boolean) {
+        isSecretPhotoEnabled = enabled
+        prefs.edit().putBoolean("isSecretPhotoEnabled", enabled).apply()
+    }
+
     fun saveMockGps(lat: Float, lng: Float, label: String, active: Boolean) {
         mockGpsLat = lat
         mockGpsLng = lng

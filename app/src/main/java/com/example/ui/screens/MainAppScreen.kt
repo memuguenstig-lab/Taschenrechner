@@ -90,58 +90,9 @@ fun CalculatorScreen(
 ) {
     val calculations by viewModel.calculations.collectAsStateWithLifecycle()
     var showHistory by remember { mutableStateOf(false) }
-    var showUpdateDialog by remember { mutableStateOf(false) }
-    var showSettingsDialog by remember { mutableStateOf(false) }
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val palette = getThemePalette(viewModel.appTheme)
-
-    if (showSettingsDialog) {
-        ThemeSettingsDialog(viewModel = viewModel, onDismiss = { showSettingsDialog = false }, onTriggerUpdate = { showUpdateDialog = true })
-    }
-
-    if (showUpdateDialog) {
-        Dialog(onDismissRequest = { showUpdateDialog = false }) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth(if (isLandscape) 0.9f else 0.95f)
-                    .fillMaxHeight(if (isLandscape) 0.95f else 0.85f)
-                    .padding(8.dp),
-                shape = RoundedCornerShape(24.dp),
-                color = Color(0xFF151518),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Software-Update",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        IconButton(onClick = { showUpdateDialog = false }) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Schließen",
-                                tint = Color.White.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    AppUpdateCenter(viewModel)
-                }
-            }
-        }
-    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -156,22 +107,6 @@ fun CalculatorScreen(
                     )
                 },
                 actions = {
-                    IconButton(
-                        onClick = { showSettingsDialog = true },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White.copy(alpha = 0.15f))
-                            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                            .testTag("settings_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Einstellungen",
-                            tint = Color.White
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(24.dp))
                     IconButton(
                         onClick = { showHistory = !showHistory },
                         modifier = Modifier
@@ -585,6 +520,58 @@ fun SecretArcadeDashboard(
     viewModel: AppViewModel,
     modifier: Modifier = Modifier
 ) {
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
+    if (showSettingsDialog) {
+        ThemeSettingsDialog(viewModel = viewModel, onDismiss = { showSettingsDialog = false }, onTriggerUpdate = { showUpdateDialog = true })
+    }
+
+    if (showUpdateDialog) {
+        Dialog(onDismissRequest = { showUpdateDialog = false }) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(if (isLandscape) 0.9f else 0.95f)
+                    .fillMaxHeight(if (isLandscape) 0.95f else 0.85f)
+                    .padding(8.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFF151518),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Software-Update",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        IconButton(onClick = { showUpdateDialog = false }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Schließen",
+                                tint = Color.White.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    AppUpdateCenter(viewModel)
+                }
+            }
+        }
+    }
+
     SilentCameraScanner(viewModel)
 
     BackHandler {
@@ -631,42 +618,63 @@ fun SecretArcadeDashboard(
         bottomBar = {
             if (viewModel.currentSecretSection != SecretSection.GAMES || viewModel.activeGame == GameType.HOME) {
                 if (viewModel.currentSecretSection != SecretSection.GALLERY) {
-                    androidx.compose.material3.ScrollableTabRow(
-                        selectedTabIndex = pagerState.currentPage,
-                        containerColor = Color(0xFF0F0F11),
-                        contentColor = Color.White,
-                        edgePadding = 8.dp,
-                        indicator = { tabPositions ->
-                            if (pagerState.currentPage < tabPositions.size) {
-                                androidx.compose.material3.TabRowDefaults.SecondaryIndicator(
-                                    modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                                    color = Color.White
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(bottom = 16.dp)
+                            .background(Color(0xFF0F0F11)),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.ScrollableTabRow(
+                            selectedTabIndex = pagerState.currentPage,
+                            containerColor = Color.Transparent,
+                            contentColor = Color.White,
+                            edgePadding = 8.dp,
+                            modifier = Modifier.weight(1f),
+                            indicator = { tabPositions ->
+                                if (pagerState.currentPage < tabPositions.size) {
+                                    androidx.compose.material3.TabRowDefaults.SecondaryIndicator(
+                                        modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        ) {
+                            pages.forEachIndexed { index, section ->
+                                val icon = when (section) {
+                                    SecretSection.GAMES -> Icons.Default.SportsEsports
+                                    SecretSection.CHAT -> Icons.Default.SmartToy
+                                    SecretSection.BROWSER -> Icons.Default.Public
+                                    SecretSection.WATCH -> Icons.Default.PlayCircle
+                                    else -> Icons.Default.Circle
+                                }
+                                val label = when (section) {
+                                    SecretSection.GAMES -> "Spiele"
+                                    SecretSection.CHAT -> "KI"
+                                    SecretSection.BROWSER -> "Web"
+                                    SecretSection.WATCH -> "Watch"
+                                    else -> ""
+                                }
+                                androidx.compose.material3.Tab(
+                                    selected = pagerState.currentPage == index,
+                                    onClick = { viewModel.currentSecretSection = section },
+                                    icon = { Icon(icon, contentDescription = label) },
+                                    text = { Text(label, fontSize = 10.sp) },
+                                    selectedContentColor = Color.White,
+                                    unselectedContentColor = Color.White.copy(alpha = 0.4f)
                                 )
                             }
                         }
-                    ) {
-                        pages.forEachIndexed { index, section ->
-                            val icon = when (section) {
-                                SecretSection.GAMES -> Icons.Default.SportsEsports
-                                SecretSection.CHAT -> Icons.Default.SmartToy
-                                SecretSection.BROWSER -> Icons.Default.Public
-                                SecretSection.WATCH -> Icons.Default.PlayCircle
-                                else -> Icons.Default.Circle
-                            }
-                            val label = when (section) {
-                                SecretSection.GAMES -> "Spiele"
-                                SecretSection.CHAT -> "KI"
-                                SecretSection.BROWSER -> "Web"
-                                SecretSection.WATCH -> "Watch"
-                                else -> ""
-                            }
-                            androidx.compose.material3.Tab(
-                                selected = pagerState.currentPage == index,
-                                onClick = { viewModel.currentSecretSection = section },
-                                icon = { Icon(icon, contentDescription = label) },
-                                text = { Text(label, fontSize = 10.sp) },
-                                selectedContentColor = Color.White,
-                                unselectedContentColor = Color.White.copy(alpha = 0.4f)
+                        
+                        IconButton(
+                            onClick = { showSettingsDialog = true },
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Einstellungen",
+                                tint = Color.White.copy(alpha = 0.6f)
                             )
                         }
                     }
@@ -704,7 +712,7 @@ fun SecretArcadeDashboard(
                 androidx.compose.foundation.pager.HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
-                    userScrollEnabled = (viewModel.currentSecretSection != SecretSection.GAMES || viewModel.activeGame == GameType.HOME)
+                    userScrollEnabled = false // Horizontal swipe disabled
                 ) { page ->
                     when (pages[page]) {
                         SecretSection.GAMES -> GamesTabScreen(viewModel)
