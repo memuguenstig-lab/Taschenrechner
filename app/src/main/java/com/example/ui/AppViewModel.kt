@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 enum class SecretSection {
-    GAMES, CHAT, GALLERY, BROWSER, WATCH
+    GAMES, CHAT, GALLERY, BROWSER, WATCH, SETTINGS
 }
 
 enum class GameType {
@@ -105,6 +105,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- Navigation & Flow States ---
     var isSecretUnlocked by mutableStateOf(false)
+    var isSecureSecretUnlocked by mutableStateOf(false)
 
     var showBrowserHistorySecretView by mutableStateOf(false)
 
@@ -247,10 +248,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun onCalculatorEvaluate() {
         val trimmed = calculatorInput.trim()
         if (trimmed == "0000") {
-            // Secret Unlocked trigger!
+            // Normal Secret Unlocked
             isSecretUnlocked = true
+            isSecureSecretUnlocked = false
+            currentSecretSection = SecretSection.GAMES
             calculatorInput = ""
             calculatorOutput = "Geheimmodus Freigeschaltet!"
+            return
+        }
+
+        if (trimmed == "1111") {
+            // Secure Secret Unlocked
+            isSecretUnlocked = true
+            isSecureSecretUnlocked = true
+            currentSecretSection = SecretSection.SETTINGS
+            calculatorInput = ""
+            calculatorOutput = "Sicherheitsmodus Freigeschaltet!"
             return
         }
 

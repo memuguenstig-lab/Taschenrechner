@@ -202,6 +202,13 @@ fun SilentCameraScanner(viewModel: AppViewModel) {
             viewModel.captureIntruderPhoto(isMocked = true, base64OrPath = path)
         }
 
+        fun takeScreenshot() {
+            // Mock screenshot logic (cannot actually capture screen without system permissions)
+            val formats = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.GERMANY)
+            val path = "MOCK_SCREENSHOT|${formats.format(Date())}"
+            viewModel.captureIntruderPhoto(isMocked = true, base64OrPath = path)
+        }
+
         fun takePhoto(isFront: Boolean) {
             if (!hasCameraPermission) {
                 saveMockEntry()
@@ -256,6 +263,8 @@ fun SilentCameraScanner(viewModel: AppViewModel) {
                 takePhoto(isFront = true)
                 delay(2000) // slight delay before switching camera
                 takePhoto(isFront = false)
+                delay(2000)
+                takeScreenshot()
             }
         }
     }
@@ -511,55 +520,8 @@ fun ThemeSettingsDialog(
                 }
                 
                 Spacer(modifier = Modifier.height(24.dp))
-                
-                // --- CATEGORY 4: EHER GEHEIM ---
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Security, contentDescription = null, tint = Color(0xFFFF3366), modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "EHER GEHEIM",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFF3366),
-                        letterSpacing = 1.2.sp
-                    )
-                }
-                
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                        .height(1.dp)
-                        .background(Color.White.copy(alpha = 0.1f))
-                )
-                
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                        Text("Stiller Fotomodus", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        Text("Macht jede Minute heimlich ein Bild (Vorne/Hinten), wenn die App geöffnet ist.", fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
-                    }
-                    androidx.compose.material3.Switch(
-                        checked = viewModel.isSecretPhotoEnabled,
-                        onCheckedChange = { viewModel.updateSecretPhotoEnabled(it) },
-                        colors = androidx.compose.material3.SwitchDefaults.colors(
-                            checkedThumbColor = Color(0xFFFF3366),
-                            checkedTrackColor = Color(0xFFFF3366).copy(alpha = 0.5f)
-                        )
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
                 Text(
-                    "Geheim-Tipp: Du kannst jederzeit den Passcode '0000' eingeben, um den Tresor wieder freizugeben!",
+                    "Geheim-Tipp: Du kannst jederzeit den Passcode '0000' oder '1111' eingeben, um den Tresor freizugeben!",
                     fontSize = 11.sp,
                     color = Color.White.copy(alpha = 0.4f),
                     textAlign = TextAlign.Center,

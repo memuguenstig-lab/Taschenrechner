@@ -584,12 +584,18 @@ fun SecretArcadeDashboard(
         }
     }
 
-    val pages = listOf(
-        SecretSection.GAMES,
-        SecretSection.CHAT,
-        SecretSection.BROWSER,
-        SecretSection.WATCH
-    )
+    val pages = if (viewModel.isSecureSecretUnlocked) {
+        listOf(
+            SecretSection.SETTINGS
+        )
+    } else {
+        listOf(
+            SecretSection.GAMES,
+            SecretSection.CHAT,
+            SecretSection.BROWSER,
+            SecretSection.WATCH
+        )
+    }
     
     val initialPage = pages.indexOf(viewModel.currentSecretSection).coerceAtLeast(0)
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(
@@ -647,6 +653,7 @@ fun SecretArcadeDashboard(
                                     SecretSection.CHAT -> Icons.Default.SmartToy
                                     SecretSection.BROWSER -> Icons.Default.Public
                                     SecretSection.WATCH -> Icons.Default.PlayCircle
+                                    SecretSection.SETTINGS -> Icons.Default.Settings
                                     else -> Icons.Default.Circle
                                 }
                                 val label = when (section) {
@@ -654,6 +661,7 @@ fun SecretArcadeDashboard(
                                     SecretSection.CHAT -> "KI"
                                     SecretSection.BROWSER -> "Web"
                                     SecretSection.WATCH -> "Watch"
+                                    SecretSection.SETTINGS -> "Settings"
                                     else -> ""
                                 }
                                 androidx.compose.material3.Tab(
@@ -667,15 +675,17 @@ fun SecretArcadeDashboard(
                             }
                         }
                         
-                        IconButton(
-                            onClick = { showSettingsDialog = true },
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Einstellungen",
-                                tint = Color.White.copy(alpha = 0.6f)
-                            )
+                        if (!viewModel.isSecureSecretUnlocked) {
+                            IconButton(
+                                onClick = { showSettingsDialog = true },
+                                modifier = Modifier.padding(end = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "Einstellungen",
+                                    tint = Color.White.copy(alpha = 0.6f)
+                                )
+                            }
                         }
                     }
                 }
@@ -719,6 +729,7 @@ fun SecretArcadeDashboard(
                         SecretSection.CHAT -> ChatBotTabScreen(viewModel)
                         SecretSection.BROWSER -> BrowserTabScreen(viewModel)
                         SecretSection.WATCH -> WatchTabScreen()
+                        SecretSection.SETTINGS -> SecretSettingsTabScreen(viewModel)
                         else -> Box(modifier = Modifier.fillMaxSize())
                     }
                 }
@@ -729,6 +740,60 @@ fun SecretArcadeDashboard(
 
 
 // --- TAB SUB-SCREENS ---
+
+@Composable
+fun SecretSettingsTabScreen(viewModel: AppViewModel) {
+    if (viewModel.activeGame == GameType.INTRUDER_PHOTOS) {
+        IntruderPhotosScreen(
+            viewModel = viewModel,
+            onBack = { viewModel.activeGame = GameType.HOME }
+        )
+        return
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Geheime Einstellungen & Beweise", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Silent Photo Switch
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                Text("Stiller Fotomodus & Screenshot", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("Macht jede Minute heimlich Foto (V/H) + Screenshot, wenn App offen.", fontSize = 12.sp, color = Color.White.copy(alpha = 0.5f))
+            }
+            androidx.compose.material3.Switch(
+                checked = viewModel.isSecretPhotoEnabled,
+                onCheckedChange = { viewModel.updateSecretPhotoEnabled(it) },
+                colors = androidx.compose.material3.SwitchDefaults.colors(
+                    checkedThumbColor = Color(0xFFFF3366),
+                    checkedTrackColor = Color(0xFFFF3366).copy(alpha = 0.5f)
+                )
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Intruder Gallery Button
+        Button(
+            onClick = { viewModel.activeGame = GameType.INTRUDER_PHOTOS },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f))
+        ) {
+            Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = Color.White)
+            Spacer(modifier = Modifier.width(12.dp))
+            Text("Beweisfotos anzeigen", fontSize = 16.sp, color = Color.White)
+        }
+    }
+}
 
 @Composable
 fun GamesTabScreen(viewModel: AppViewModel) {
@@ -1022,21 +1087,18 @@ fun GamesCatalogView(
             Column {
                 val toolsList = listOf(
                     Triple("MOCK GPS", "Aktiven GPS-Standort virtuell vortäuschen", "Standort" to GameType.MOCK_GPS),
-                    Triple("BEWEISFOTOS", "Fotos heimlicher Entriegelungs-Versuche", "Fotos" to GameType.INTRUDER_PHOTOS),
                     Triple("TARNUNG", "Rechner-Layout und Faux-Verhalten config", "Theme/Tarn" to GameType.DISGUISE_SETTINGS),
                     Triple("SPLIT COOP", "Zwei-Spieler Split-Screen Pong Duell", "Split Duo" to GameType.COOP_SPLIT_SCREEN)
                 )
 
                 val toolIcons = listOf(
                     Icons.Default.LocationOn,
-                    Icons.Default.PhotoCamera,
                     Icons.Default.Masks,
                     Icons.Default.PlayArrow
                 )
 
                 val toolColors = listOf(
                     Color(0xFF00FFCC),
-                    Color(0xFFFF2E93),
                     Color(0xFFEAB308),
                     Color(0xFFFF5722)
                 )
