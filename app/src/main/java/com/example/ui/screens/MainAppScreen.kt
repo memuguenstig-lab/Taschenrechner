@@ -1592,7 +1592,7 @@ fun GalleryTabScreen(viewModel: AppViewModel) {
 fun WatchTabScreen() {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("TikTok", "YouTube", "Instagram")
-    val urls = listOf("https://www.tiktok.com", "https://www.youtube.com", "https://www.instagram.com")
+    val urls = listOf("https://www.tiktok.com/explore", "https://www.youtube.com", "https://www.instagram.com")
 
     Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         TabRow(

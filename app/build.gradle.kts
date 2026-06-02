@@ -6,6 +6,8 @@ plugins {
   alias(libs.plugins.secrets)
 }
 
+import java.util.Base64
+
 android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
@@ -33,7 +35,19 @@ android {
       keyPassword = System.getenv("KEY_PASSWORD")
     }
     create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
+      val keystoreFile = file("${rootDir}/debug.keystore")
+      val base64File = file("${rootDir}/debug.keystore.base64")
+      if (!keystoreFile.exists() && base64File.exists()) {
+        try {
+          val b64Bytes = base64File.readBytes()
+          val cleanB64 = String(b64Bytes).replace("\\s".toRegex(), "")
+          val decoded = Base64.getDecoder().decode(cleanB64)
+          keystoreFile.writeBytes(decoded)
+        } catch (e: Exception) {
+          println("LOGGER: Could not decode debug.keystore.base64 dynamically: ${e.message}")
+        }
+      }
+      storeFile = keystoreFile
       storePassword = "android"
       keyAlias = "androiddebugkey"
       keyPassword = "android"

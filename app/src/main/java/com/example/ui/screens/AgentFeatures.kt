@@ -261,6 +261,7 @@ fun ThemeSettingsDialog(
     ) {
         Surface(
             modifier = Modifier
+                .widthIn(max = 520.dp)
                 .fillMaxWidth(0.92f)
                 .wrapContentHeight()
                 .padding(vertical = 16.dp),

@@ -151,7 +151,7 @@ fun DotsAndBoxesGame(
                 Text(
                     "1. Verbinde abwechselnd zwei benachbarte Punkte mit einer Linie.\n" +
                     "2. Wer die vierte Wand eines Kästchens schließt, erhält einen Punkt und MUSS sofort einen weiteren Zug machen.\n" +
-                    "3. Das Spiel endet, wenn alle 9 Kästchen geschlossen sind.\n" +
+                    "3. Das Spiel endet, wenn alle ${gridWidth * gridHeight} Kästchen geschlossen sind.\n" +
                     "4. Der Spieler mit den meisten geschlossenen Kästchen gewinnt!",
                     fontSize = 15.sp,
                     lineHeight = 22.sp
@@ -473,8 +473,8 @@ fun DotsAndBoxesCanvas(
                         }
                     }
 
-                    // Ensure tap matches close range (~0.35 grid size threshold)
-                    if (minDistanceSq < 0.15) {
+                    // Ensure tap matches close range (0.35 threshold which handles grid scaling beautifully)
+                    if (minDistanceSq < 0.35) {
                         onDragLine(closestIsHorizontal, closestCol, closestRow)
                     }
                 }

@@ -426,8 +426,12 @@ fun SimpleWebScreen(url: String) {
                 settings.useWideViewPort = true
                 settings.javaScriptCanOpenWindowsAutomatically = true
                 
-                // Standard Mobile User Agent to ensure mobile video formats (MP4) are loaded instead of unsupported desktop formats
-                settings.userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+                // Standard Mobile User / Specialized User Agents to bypass lockouts
+                if (url.contains("tiktok.com")) {
+                    settings.userAgentString = "Mozilla/5.0 (iPad; CPU OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
+                } else {
+                    settings.userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+                }
                 
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, urlString: String) {
@@ -438,16 +442,31 @@ fun SimpleWebScreen(url: String) {
                             "var style = document.createElement('style');" +
                             "var css = '';" +
                             "if (isTikTok) {" +
-                            "  css = '.tiktok-cookie-banner, .unlogin-roaming-app-container, .unlogin-bottom-bar, .tiktok-auth-modal, .tux-modal { display: none !important; opacity: 0 !important; pointer-events: none !important; }';" +
+                            "  css = 'html, body { overflow: auto !important; position: relative !important; height: auto !important; } ' +" +
+                            "        '.tiktok-cookie-banner, .unlogin-roaming-app-container, .unlogin-bottom-bar, .tiktok-auth-modal, .tux-modal, ' +" +
+                            "        'div[class*=\"DivOverlay\"], div[class*=\"Overlay\"], div[class*=\"Mask\"], div[class*=\"BottomBar\"], ' +" +
+                            "        '[class*=\"download-app\"], [class*=\"app-banner\"] ' +" +
+                            "        '{ display: none !important; opacity: 0 !important; pointer-events: none !important; z-index: -9999 !important; }';" +
                             "} else {" +
                             "  css = 'ytm-consent-bump-renderer, ytm-app-promo-renderer, ytm-bottom-sheet-renderer, .bottom-sheet-container, ytm-promoted-video-renderer, [id*=\"branch-banner\"], [class*=\"app-banner\"], [class*=\"download-app\"], [class*=\"upsell\"], .tux-modal { display: none !important; opacity: 0 !important; pointer-events: none !important; }';" +
                             "}" +
                             "style.innerHTML = css + ' body { overflow: auto !important; }';" +
                             "document.head.appendChild(style);" +
                             "setInterval(function() {" +
-                            "  var vids = document.getElementsByTagName('video');" +
-                            "  for(var i=0; i<vids.length; i++) { if(vids[i].paused && window.location.hostname.includes(\"tiktok\")) vids[i].play(); }" +
-                            "}, 1500);" +
+                            "  if (isTikTok) {" +
+                            "    document.body.style.setProperty(\"overflow\", \"auto\", \"important\");" +
+                            "    document.body.style.setProperty(\"position\", \"relative\", \"important\");" +
+                            "    document.documentElement.style.setProperty(\"overflow\", \"auto\", \"important\");" +
+                            "    document.documentElement.style.setProperty(\"position\", \"relative\", \"important\");" +
+                            "    var closeBtns = document.querySelectorAll('div[class*=\"Close\"], div[class*=\"close\"], svg[class*=\"Close\"]');" +
+                            "    for(var i=0; i<closeBtns.length; i++) { try { closeBtns[i].click(); } catch(e) {} }" +
+                            "    var vids = document.getElementsByTagName('video');" +
+                            "    for(var i=0; i<vids.length; i++) { if(vids[i].paused) { try { vids[i].play(); } catch(e) {} } }" +
+                            "  } else {" +
+                            "    var vids = document.getElementsByTagName('video');" +
+                            "    for(var i=0; i<vids.length; i++) { if(vids[i].paused && window.location.hostname.includes(\"tiktok\")) vids[i].play(); }" +
+                            "  }" +
+                            "}, 1000);" +
                             "})();", null
                         )
                     }
