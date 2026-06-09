@@ -14,7 +14,7 @@ object MathEvaluator {
 
         try {
             var tokens = tokenize(cleanExpr)
-            while (tokens.isNotEmpty() && tokens.last() in setOf("+", "-", "*", "/")) {
+            while (tokens.isNotEmpty() && tokens.last() in setOf("+", "-", "*", "/", "%")) {
                 tokens = tokens.dropLast(1)
             }
             if (tokens.isEmpty()) return ""
@@ -49,9 +49,9 @@ object MathEvaluator {
                     i++
                 }
                 tokens.add(sb.toString())
-            } else if (c in setOf('+', '-', '*', '/')) {
+            } else if (c in setOf('+', '-', '*', '/', '%')) {
                 // If '-' is at the start or follows an operator, it is a negative sign, not an operator
-                if (c == '-' && (tokens.isEmpty() || tokens.last() in setOf("+", "-", "*", "/"))) {
+                if (c == '-' && (tokens.isEmpty() || tokens.last() in setOf("+", "-", "*", "/", "%"))) {
                     val sb = StringBuilder("-")
                     i++
                     while (i < n && (expr[i].isDigit() || expr[i] == '.')) {
@@ -78,7 +78,7 @@ object MathEvaluator {
     private fun infixToRPN(tokens: List<String>): List<String> {
         val output = mutableListOf<String>()
         val operators = Stack<String>()
-        val precedence = mapOf("+" to 1, "-" to 1, "*" to 2, "/" to 2)
+        val precedence = mapOf("+" to 1, "-" to 1, "*" to 2, "/" to 2, "%" to 2)
 
         for (token in tokens) {
             if (token.toDoubleOrNull() != null) {
@@ -117,6 +117,7 @@ object MathEvaluator {
                         if (b == 0.0) throw ArithmeticException("Division durch Null")
                         a / b
                     }
+                    "%" -> a % b
                     else -> throw Exception("Unbekannter Operator")
                 }
                 stack.push(res)

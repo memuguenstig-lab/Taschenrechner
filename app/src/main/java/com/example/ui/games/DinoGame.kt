@@ -179,7 +179,7 @@ fun DinoGame(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .height(300.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .border(2.dp, Color(0xFFE2E2E2), RoundedCornerShape(12.dp))
                 .pointerInput(Unit) {
@@ -251,18 +251,62 @@ fun DinoGame(
                 val dinoXDraw = 10f * unit
                 val dinoYDraw = groundY - dinoY * unit
                 
-                if (isDucking) { // Ducking: 28x16
-                    // Ducking body
-                    drawRect(Color(0xFF535353), topLeft = Offset(dinoXDraw, dinoYDraw - 16f * unit), size = Size(28f * unit, 16f * unit))
-                    // Eye
-                    drawRect(Color.White, topLeft = Offset(dinoXDraw + 22f * unit, dinoYDraw - 12f * unit), size = Size(2f * unit, 2f * unit))
-                } else { // Normal: 16x28
+                val runCycle = (score / 5) % 2 == 0
+                val isJumping = dinoY > 0f
+                val color = Color(0xFF535353)
+
+                if (isDucking) { 
+                    // Ducking
                     // Body
-                    drawRect(Color(0xFF535353), topLeft = Offset(dinoXDraw, dinoYDraw - 28f * unit), size = Size(16f * unit, 28f * unit))
+                    drawRect(color, topLeft = Offset(dinoXDraw, dinoYDraw - 16f * unit), size = Size(28f * unit, 12f * unit))
+                    // Head
+                    drawRect(color, topLeft = Offset(dinoXDraw + 20f * unit, dinoYDraw - 16f * unit), size = Size(10f * unit, 8f * unit))
+                    // Snout
+                    drawRect(color, topLeft = Offset(dinoXDraw + 30f * unit, dinoYDraw - 16f * unit), size = Size(6f * unit, 4f * unit))
                     // Eye
-                    drawRect(Color.White, topLeft = Offset(dinoXDraw + 10f * unit, dinoYDraw - 24f * unit), size = Size(2f * unit, 2f * unit))
+                    drawRect(Color.White, topLeft = Offset(dinoXDraw + 24f * unit, dinoYDraw - 14f * unit), size = Size(2f * unit, 2f * unit))
+                    // Legs
+                    if (isJumping || !runCycle) {
+                        drawRect(color, topLeft = Offset(dinoXDraw + 4f * unit, dinoYDraw - 4f * unit), size = Size(3f * unit, 4f * unit))
+                        drawRect(color, topLeft = Offset(dinoXDraw + 12f * unit, dinoYDraw - 4f * unit), size = Size(3f * unit, 4f * unit))
+                    } else {
+                        drawRect(color, topLeft = Offset(dinoXDraw + 2f * unit, dinoYDraw - 4f * unit), size = Size(3f * unit, 4f * unit))
+                        drawRect(color, topLeft = Offset(dinoXDraw + 14f * unit, dinoYDraw - 4f * unit), size = Size(3f * unit, 4f * unit))
+                    }
+                } else { 
+                    // Normal
+                    // Body
+                    drawRect(color, topLeft = Offset(dinoXDraw + 6f * unit, dinoYDraw - 22f * unit), size = Size(12f * unit, 16f * unit))
+                    // Tail
+                    drawRect(color, topLeft = Offset(dinoXDraw, dinoYDraw - 18f * unit), size = Size(6f * unit, 6f * unit))
+                    // Tail tip
+                    drawRect(color, topLeft = Offset(dinoXDraw - 2f * unit, dinoYDraw - 20f * unit), size = Size(2f * unit, 4f * unit))
+                    // Head
+                    drawRect(color, topLeft = Offset(dinoXDraw + 14f * unit, dinoYDraw - 30f * unit), size = Size(12f * unit, 10f * unit))
+                    // Snout
+                    drawRect(color, topLeft = Offset(dinoXDraw + 26f * unit, dinoYDraw - 30f * unit), size = Size(6f * unit, 6f * unit))
+                    // Eye
+                    drawRect(Color.White, topLeft = Offset(dinoXDraw + 18f * unit, dinoYDraw - 28f * unit), size = Size(2f * unit, 2f * unit))
                     // Arm
-                    drawRect(Color(0xFF535353), topLeft = Offset(dinoXDraw + 16f * unit, dinoYDraw - 16f * unit), size = Size(5f * unit, 3f * unit))
+                    drawRect(color, topLeft = Offset(dinoXDraw + 18f * unit, dinoYDraw - 18f * unit), size = Size(6f * unit, 2f * unit))
+                    // Arm hand
+                    drawRect(color, topLeft = Offset(dinoXDraw + 22f * unit, dinoYDraw - 16f * unit), size = Size(2f * unit, 2f * unit))
+                    
+                    // Legs
+                    if (isJumping) {
+                        drawRect(color, topLeft = Offset(dinoXDraw + 6f * unit, dinoYDraw - 6f * unit), size = Size(3f * unit, 6f * unit))
+                        drawRect(color, topLeft = Offset(dinoXDraw + 12f * unit, dinoYDraw - 6f * unit), size = Size(3f * unit, 6f * unit))
+                    } else {
+                        if (runCycle) {
+                            // Leg 1 down, Leg 2 up
+                            drawRect(color, topLeft = Offset(dinoXDraw + 6f * unit, dinoYDraw - 6f * unit), size = Size(3f * unit, 6f * unit))
+                            drawRect(color, topLeft = Offset(dinoXDraw + 14f * unit, dinoYDraw - 6f * unit), size = Size(3f * unit, 3f * unit))
+                        } else {
+                            // Leg 1 up, Leg 2 down
+                            drawRect(color, topLeft = Offset(dinoXDraw + 4f * unit, dinoYDraw - 6f * unit), size = Size(3f * unit, 3f * unit))
+                            drawRect(color, topLeft = Offset(dinoXDraw + 12f * unit, dinoYDraw - 6f * unit), size = Size(3f * unit, 6f * unit))
+                        }
+                    }
                 }
             }
 

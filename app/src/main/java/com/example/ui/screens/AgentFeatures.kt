@@ -88,19 +88,19 @@ data class ThemePalette(
 fun getThemePalette(theme: AppTheme): ThemePalette {
     return when (theme) {
         AppTheme.CLASSIC_DARK -> ThemePalette(
-            background = Color(0xFF0F0F12),
-            displayBg = Color.Black,
-            textPrimary = Color.White,
-            textSecondary = Color.White.copy(alpha = 0.6f),
-            keysBg = Color.White.copy(alpha = 0.05f),
-            numKeysBg = Color.White.copy(alpha = 0.04f),
-            opKeysBg = Color.White.copy(alpha = 0.12f),
-            clearKeysBg = Color.White.copy(alpha = 0.08f),
-            equalsKeyBg = Color(0xFF0A84FF),
-            equalsKeyText = Color.White,
-            accentColor = Color(0xFF0A84FF),
-            borderStrokeColor = Color.White.copy(alpha = 0.15f),
-            title = "Midnight Blue"
+            background = Color(0xFF09090b),
+            displayBg = Color(0xFF09090b),
+            textPrimary = Color(0xFFfafafa),
+            textSecondary = Color(0xFFA1A1AA),
+            keysBg = Color(0xFF27272a),
+            numKeysBg = Color(0xFF27272a),
+            opKeysBg = Color(0xFFfafafa),
+            clearKeysBg = Color(0xFF3f3f46),
+            equalsKeyBg = Color(0xFFfafafa),
+            equalsKeyText = Color(0xFF09090b),
+            accentColor = Color(0xFF09090b), // Text color for operator keys
+            borderStrokeColor = Color(0xFF3f3f46).copy(alpha = 0.5f),
+            title = "Cipher Calc"
         )
         AppTheme.OLED_BLACK -> ThemePalette(
             background = Color.Black,
@@ -1176,7 +1176,7 @@ fun IntruderPhotosScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 },
                 actions = {
                     TextButton(onClick = { viewModel.clearAllIntruderPhotos() }) {
-                        Text("Mölen leeren", color = Color(0xFFFF5252))
+                        Text("Fotos leeren", color = Color(0xFFFF5252))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F0F12))

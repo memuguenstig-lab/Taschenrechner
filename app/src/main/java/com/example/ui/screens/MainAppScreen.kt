@@ -73,7 +73,9 @@ fun MainAppScreen(
     if (viewModel.showBrowserHistorySecretView) {
         BrowserHistoryScreen(viewModel, onBack = { viewModel.showBrowserHistorySecretView = false })
     } else if (viewModel.isSecretUnlocked) {
-        SecretArcadeDashboard(viewModel, modifier)
+        key(viewModel.isSecureSecretUnlocked) {
+            SecretArcadeDashboard(viewModel, modifier)
+        }
     } else {
         when (viewModel.disguiseMode) {
             DisguiseMode.CONVERTER -> ConverterScreen(viewModel)
@@ -89,7 +91,7 @@ fun CalculatorScreen(
     modifier: Modifier = Modifier
 ) {
     val calculations by viewModel.calculations.collectAsStateWithLifecycle()
-    var showHistory by remember { mutableStateOf(false) }
+    var showCalcSettings by remember { mutableStateOf(false) }
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val palette = getThemePalette(viewModel.appTheme)
@@ -100,32 +102,38 @@ fun CalculatorScreen(
             @OptIn(ExperimentalMaterial3Api::class)
             TopAppBar(
                 title = {
-                    Text(
-                        stringResource(R.string.app_name),
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Calculate,
+                            contentDescription = "Calculator",
+                            tint = palette.opKeysBg,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            stringResource(R.string.app_name),
+                            fontWeight = FontWeight.Bold,
+                            color = palette.textPrimary,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
                 },
                 actions = {
                     IconButton(
-                        onClick = { showHistory = !showHistory },
+                        onClick = { showCalcSettings = true },
                         modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White.copy(alpha = 0.15f))
-                            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                            .testTag("history_toggle_button")
+                            .padding(end = 8.dp)
+                            .clip(CircleShape)
                     ) {
                         Icon(
-                            imageVector = if (showHistory) Icons.Default.Close else Icons.Default.History,
-                            contentDescription = "Historie",
-                            tint = Color.White
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Einstellungen",
+                            tint = palette.textSecondary
                         )
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
+                    containerColor = palette.background
                 )
             )
         },
@@ -140,7 +148,7 @@ fun CalculatorScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // Left Panel: Display & History
+                // Left Panel: Display
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -148,78 +156,12 @@ fun CalculatorScreen(
                     verticalArrangement = Arrangement.Bottom,
                     horizontalAlignment = Alignment.End
                 ) {
-                    // History Panel (shown vertically inside the left half)
-                    AnimatedVisibility(
-                        visible = showHistory,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
-                        modifier = Modifier.weight(1f).padding(bottom = 12.dp)
-                    ) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth().fillMaxHeight(),
-                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
-                            shape = RoundedCornerShape(24.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        "Rechenverlauf",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    TextButton(onClick = { viewModel.clearHistory() }) {
-                                        Text("Leeren", color = Color(0xFFEF9A9A))
-                                    }
-                                }
-
-                                if (calculations.isEmpty()) {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            "Keine Einträge.",
-                                            color = Color.White.copy(alpha = 0.7f),
-                                            textAlign = TextAlign.Center
-                                        )
-                                    }
-                                } else {
-                                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                        items(calculations) { calc ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable { viewModel.useHistoryItem(calc) }
-                                                    .padding(vertical = 8.dp, horizontal = 4.dp),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text(calc.expression, color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
-                                                    Text("= ${calc.result}", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                                                }
-                                                Icon(Icons.Default.ArrowBack, contentDescription = "Take", tint = Color.White.copy(alpha = 0.5f))
-                                            }
-                                            HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
                     // Typed Math expression formula
                     Text(
                         text = viewModel.calculatorInput.ifEmpty { "0" },
-                        fontSize = 24.sp,
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontWeight = FontWeight.Light,
+                        fontSize = 32.sp,
+                        color = Color.White,
+                        fontFamily = FontFamily.Monospace,
                         textAlign = TextAlign.End,
                         maxLines = 1,
                         modifier = Modifier
@@ -233,9 +175,10 @@ fun CalculatorScreen(
                     // Computed Result
                     Text(
                         text = viewModel.calculatorOutput.ifEmpty { "" },
-                        fontSize = 42.sp,
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Bold,
                         color = Color.White,
-                        fontWeight = FontWeight.Thin,
+                        letterSpacing = (-0.02).sp,
                         textAlign = TextAlign.End,
                         maxLines = 1,
                         modifier = Modifier
@@ -245,71 +188,70 @@ fun CalculatorScreen(
                     )
                 }
 
-                // Right Panel: Keypad Buttons with Glassmorphism
+                // Right Panel: Keypad Buttons
                 Column(
                     modifier = Modifier
                         .weight(1.3f)
                         .fillMaxHeight()
-                        .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
-                        .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(24.dp))
                         .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     val buttons = listOf(
-                        listOf("C", "⌫", " ", "/"),
+                        listOf("C", "⌫", "%", "/"),
                         listOf("7", "8", "9", "*"),
                         listOf("4", "5", "6", "-"),
                         listOf("1", "2", "3", "+"),
-                        listOf("00", "0", ".", "=")
+                        listOf("0", "00", ".", "=")
                     )
                     buttons.forEach { row ->
                         Row(
                             modifier = Modifier.fillMaxWidth().weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
                             row.forEach { char ->
-                                if (char.isEmpty() || char == " ") {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                } else {
-                                    val isOperator = char in listOf("/", "*", "-", "+")
-                                    val isClear = char in listOf("C", "⌫")
-                                    val isEquals = char == "="
+                                val isOperator = char in listOf("/", "*", "-", "+")
+                                val isClear = char in listOf("C", "⌫", "%")
+                                val isEquals = char == "="
 
-                                    val btnBg = when {
-                                        isEquals -> palette.equalsKeyBg
-                                        isOperator -> palette.opKeysBg
-                                        isClear -> palette.clearKeysBg
-                                        else -> palette.numKeysBg
-                                    }
-                                    val btnTextColor = when {
-                                        isEquals -> palette.equalsKeyText
-                                        isOperator -> palette.accentColor
-                                        else -> palette.textPrimary
-                                    }
+                                val btnBg = when {
+                                    isEquals -> palette.equalsKeyBg
+                                    isOperator -> palette.opKeysBg
+                                    isClear -> palette.clearKeysBg
+                                    else -> palette.numKeysBg
+                                }
+                                val btnTextColor = when {
+                                    isEquals -> palette.equalsKeyText
+                                    isOperator -> palette.accentColor
+                                    else -> palette.textPrimary
+                                }
 
-                                    Button(
-                                        onClick = {
-                                            if (isEquals) viewModel.onCalculatorEvaluate()
-                                            else viewModel.onCalculatorChar(char)
-                                        },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight()
-                                            .border(1.dp, palette.borderStrokeColor, RoundedCornerShape(16.dp))
-                                            .testTag("calc_btn_$char"),
-                                        colors = ButtonDefaults.buttonColors(containerColor = btnBg),
-                                        shape = RoundedCornerShape(16.dp),
-                                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-                                        contentPadding = PaddingValues(0.dp)
-                                    ) {
-                                        Text(
-                                            text = char,
-                                            fontSize = 20.sp,
-                                            fontWeight = if (isOperator || isEquals) FontWeight.Bold else FontWeight.Medium,
-                                            color = btnTextColor,
-                                            fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.Default
-                                        )
+                                Button(
+                                    onClick = {
+                                        if (isEquals) viewModel.onCalculatorEvaluate()
+                                        else viewModel.onCalculatorChar(char)
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .testTag("calc_btn_$char"),
+                                    colors = ButtonDefaults.buttonColors(containerColor = btnBg),
+                                    shape = CircleShape,
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    val displayChar = when(char) {
+                                        "/" -> "÷"
+                                        "*" -> "×"
+                                        "-" -> "−"
+                                        else -> char
                                     }
+                                    Text(
+                                        text = displayChar,
+                                        fontSize = 26.sp,
+                                        fontWeight = if (isOperator || isEquals) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (!isOperator && !isEquals && !isClear) Color.White else btnTextColor,
+                                        fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.SansSerif
+                                    )
                                 }
                             }
                         }
@@ -324,24 +266,24 @@ fun CalculatorScreen(
                     .padding(innerPadding),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Display & History Panel
+                // Display
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(if (showHistory) 0.55f else 0.35f)
-                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                        .weight(0.45f) // Fixed display weight
+                        .padding(horizontal = 24.dp)
+                        .padding(top = 40.dp, bottom = 20.dp),
                     verticalArrangement = Arrangement.Bottom,
                     horizontalAlignment = Alignment.End
                 ) {
-                    // Typed Math expression formula
+                    // History Line (Ghost expression)
                     Text(
                         text = viewModel.calculatorInput.ifEmpty { "0" },
-                        fontSize = 28.sp,
-                        color = palette.textSecondary,
-                        fontWeight = FontWeight.Light,
+                        fontSize = 40.sp,
+                        color = Color.White,
+                        fontFamily = FontFamily.Monospace,
                         textAlign = TextAlign.End,
                         maxLines = 1,
-                        fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.Default,
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
@@ -353,156 +295,214 @@ fun CalculatorScreen(
                     // Computed Result
                     Text(
                         text = viewModel.calculatorOutput.ifEmpty { "" },
-                        fontSize = 52.sp,
-                        color = palette.textPrimary,
-                        fontWeight = FontWeight.Thin,
+                        fontSize = 64.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        letterSpacing = (-0.02).sp,
                         textAlign = TextAlign.End,
                         maxLines = 1,
-                        fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.Default,
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
                             .testTag("calculator_result_display")
                     )
+                }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                // Keypad layout
+                val buttons = listOf(
+                    listOf("C", "⌫", "%", "/"),
+                    listOf("7", "8", "9", "*"),
+                    listOf("4", "5", "6", "-"),
+                    listOf("1", "2", "3", "+"),
+                    listOf("0", "00", ".", "=")
+                )
 
-                    // History Panel
-                    AnimatedVisibility(
-                        visible = showHistory,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
-                            shape = RoundedCornerShape(24.dp)
+                // Standard Keypad
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 32.dp)
+                        .weight(0.55f),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    buttons.forEach { row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        "Rechenverlauf",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    TextButton(onClick = { viewModel.clearHistory() }) {
-                                        Text("Leeren", color = Color(0xFFEF9A9A))
-                                    }
+                            row.forEach { char ->
+                                val isOperator = char in listOf("/", "*", "-", "+")
+                                val isClear = char in listOf("C", "⌫", "%")
+                                val isEquals = char == "="
+
+                                val btnBg = when {
+                                    isEquals -> palette.equalsKeyBg
+                                    isOperator -> palette.opKeysBg
+                                    isClear -> palette.clearKeysBg
+                                    else -> palette.numKeysBg
                                 }
 
-                                if (calculations.isEmpty()) {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            "Keine Einträge.",
-                                            color = Color.White.copy(alpha = 0.7f),
-                                            textAlign = TextAlign.Center
-                                        )
+                                val btnTextColor = when {
+                                    isEquals -> palette.equalsKeyText
+                                    isOperator -> palette.accentColor
+                                    else -> palette.textPrimary
+                                }
+
+                                Button(
+                                    onClick = {
+                                        if (isEquals) viewModel.onCalculatorEvaluate()
+                                        else viewModel.onCalculatorChar(char)
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f) // Account for spacing in weight
+                                        .fillMaxHeight()
+                                        .testTag("calc_btn_$char"),
+                                    colors = ButtonDefaults.buttonColors(containerColor = btnBg),
+                                    shape = CircleShape,
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    val displayChar = when(char) {
+                                        "/" -> "÷"
+                                        "*" -> "×"
+                                        "-" -> "−"
+                                        else -> char
                                     }
-                                } else {
-                                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                        items(calculations) { calc ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable { viewModel.useHistoryItem(calc) }
-                                                    .padding(vertical = 12.dp, horizontal = 4.dp),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text(calc.expression, color = Color.White.copy(alpha = 0.8f), fontSize = 16.sp)
-                                                    Text("= ${calc.result}", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                                                }
-                                                Icon(Icons.Default.ArrowBack, contentDescription = "Take", tint = Color.White.copy(alpha = 0.5f))
-                                            }
-                                            HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
-                                        }
-                                    }
+                                    Text(
+                                        text = displayChar,
+                                        fontSize = 32.sp,
+                                        fontWeight = if (isOperator || isEquals) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (!isOperator && !isEquals && !isClear) Color.White else btnTextColor,
+                                        fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.SansSerif
+                                    )
                                 }
                             }
                         }
                     }
                 }
-
-                // Keypad layout
-                val buttons = listOf(
-                    listOf("C", "⌫", " ", "/"),
-                    listOf("7", "8", "9", "*"),
-                    listOf("4", "5", "6", "-"),
-                    listOf("1", "2", "3", "+"),
-                    listOf("00", "0", ".", "=")
-                )
-
-                // Glassmorphism Keypad Background
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                        .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                        .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 32.dp)
-                        .weight(if (showHistory) 0.45f else 0.65f),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    buttons.forEach { row ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            }
+        }
+        
+        if (showCalcSettings) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.8f))
+                    .clickable { showCalcSettings = false },
+                contentAlignment = Alignment.Center
+            ) {
+                // We intercept click to prevent dismissing when clicking inside the dialog
+                Box(modifier = Modifier.clickable(enabled = false) {}) {
+                    val containerColor = Color(0xFF18181b)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth(0.9f)
+                            .padding(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = containerColor),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, Color(0xFF3f3f46))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp)
                         ) {
-                            row.forEach { char ->
-                                if (char.isEmpty() || char == " ") {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                } else {
-                                    val isOperator = char in listOf("/", "*", "-", "+")
-                                    val isClear = char in listOf("C", "⌫")
-                                    val isEquals = char == "="
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Settings", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                                IconButton(onClick = { showCalcSettings = false }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
+                            
+                            Text("MATH CONFIGURATION", style = MaterialTheme.typography.labelMedium, color = palette.textPrimary)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Column {
+                                    Text("Scientific Mode", color = Color.White, fontWeight = FontWeight.Medium)
+                                    Text("Advanced functions", color = palette.textSecondary, fontSize = 14.sp)
+                                }
+                                Switch(checked = false, onCheckedChange = {}, colors = SwitchDefaults.colors(checkedThumbColor = palette.background, checkedTrackColor = palette.opKeysBg, uncheckedTrackColor = Color(0xFF3f3f46), uncheckedThumbColor = Color(0xFFA1A1AA)))
+                            }
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
 
-                                    val btnBg = when {
-                                        isEquals -> palette.equalsKeyBg
-                                        isOperator -> palette.opKeysBg
-                                        isClear -> palette.clearKeysBg
-                                        else -> palette.numKeysBg
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Column {
+                                    Text("High Precision", color = Color.White, fontWeight = FontWeight.Medium)
+                                    Text("128-bit floating point", color = palette.textSecondary, fontSize = 14.sp)
+                                }
+                                Switch(checked = true, onCheckedChange = {}, colors = SwitchDefaults.colors(checkedThumbColor = palette.background, checkedTrackColor = palette.opKeysBg))
+                            }
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
+                            HorizontalDivider(color = Color(0xFF3f3f46))
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Text("UPDATE CENTER", style = MaterialTheme.typography.labelMedium, color = palette.textPrimary)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF27272a), RoundedCornerShape(8.dp))
+                                    .border(1.dp, Color(0xFF3f3f46).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                    .padding(16.dp)
+                            ) {
+                                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                    Column {
+                                        Text("Firmware Version", color = Color.White, fontWeight = FontWeight.Medium)
+                                        Text("v2.4.1-stable", color = palette.textSecondary, fontSize = 12.sp)
                                     }
-
-                                    val btnTextColor = when {
-                                        isEquals -> palette.equalsKeyText
-                                        isOperator -> palette.accentColor
-                                        else -> palette.textPrimary
-                                    }
-
-                                    Button(
-                                        onClick = {
-                                            if (isEquals) viewModel.onCalculatorEvaluate()
-                                            else viewModel.onCalculatorChar(char)
-                                        },
+                                    Box(
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight()
-                                            .border(1.dp, palette.borderStrokeColor, RoundedCornerShape(20.dp))
-                                            .testTag("calc_btn_$char"),
-                                        colors = ButtonDefaults.buttonColors(containerColor = btnBg),
-                                        shape = RoundedCornerShape(20.dp),
-                                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-                                        contentPadding = PaddingValues(0.dp)
+                                            .background(palette.opKeysBg.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                                            .border(1.dp, palette.opKeysBg.copy(alpha=0.2f), RoundedCornerShape(12.dp))
+                                            .padding(horizontal = 8.dp, vertical = 2.dp)
                                     ) {
-                                        Text(
-                                            text = char,
-                                            fontSize = 24.sp,
-                                            fontWeight = if (isOperator || isEquals) FontWeight.Bold else FontWeight.Medium,
-                                            color = btnTextColor,
-                                            fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.Default
-                                        )
+                                        Text("Up to date", color = palette.opKeysBg, fontSize = 10.sp)
                                     }
                                 }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Button(
+                                    onClick = { },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3f3f46)),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text("CHECK FOR UPDATES", fontFamily = FontFamily.Monospace, color = Color.White, fontSize = 12.sp)
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
+                            HorizontalDivider(color = Color(0xFF3f3f46))
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Text("PRIVACY & SECURITY", style = MaterialTheme.typography.labelMedium, color = palette.textPrimary)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Column {
+                                    Text("Vault Protocol", color = Color.White, fontWeight = FontWeight.Medium)
+                                    Text("Enable sequence triggers", color = palette.textSecondary, fontSize = 14.sp)
+                                }
+                                Switch(checked = true, onCheckedChange = {}, colors = SwitchDefaults.colors(checkedThumbColor = palette.background, checkedTrackColor = palette.opKeysBg))
+                            }
+                            
+                            Spacer(modifier = Modifier.height(32.dp))
+                            Button(
+                                onClick = { showCalcSettings = false },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = palette.textPrimary),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Done", color = palette.background, fontWeight = FontWeight.Medium)
                             }
                         }
                     }
@@ -844,13 +844,14 @@ fun GamesTabScreen(viewModel: AppViewModel) {
         }
     }
 
-    AnimatedContent(
-        targetState = viewModel.activeGame,
-        transitionSpec = { fadeIn() togetherWith fadeOut() },
-        label = "games_navigation",
-        modifier = Modifier.fillMaxSize()
-    ) { game ->
-        when (game) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedContent(
+            targetState = viewModel.activeGame,
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            label = "games_navigation",
+            modifier = Modifier.fillMaxSize()
+        ) { game ->
+            when (game) {
             GameType.HOME -> GamesCatalogView(
                 snakeHighScore = viewModel.snakeHighScore,
                 tetrisHighScore = viewModel.tetrisHighScore,
@@ -939,6 +940,23 @@ fun GamesTabScreen(viewModel: AppViewModel) {
             )
         }
     }
+
+    if (viewModel.activeGame != GameType.HOME) {
+        androidx.compose.material3.IconButton(
+            onClick = { viewModel.lockSecretMode() },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(8.dp)
+                .background(Color.Black.copy(alpha = 0.5f), androidx.compose.foundation.shape.CircleShape)
+        ) {
+            androidx.compose.material3.Icon(
+                imageVector = androidx.compose.material.icons.Icons.Default.Close,
+                contentDescription = "Schließen & Sperren",
+                tint = Color.White
+            )
+        }
+    }
+}
 }
 
 @Composable
