@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -100,7 +101,7 @@ fun getThemePalette(theme: AppTheme): ThemePalette {
             equalsKeyText = Color(0xFF09090b),
             accentColor = Color(0xFF09090b), // Text color for operator keys
             borderStrokeColor = Color(0xFF3f3f46).copy(alpha = 0.5f),
-            title = "Cipher Calc"
+            title = "Calc"
         )
         AppTheme.OLED_BLACK -> ThemePalette(
             background = Color.Black,
@@ -1576,6 +1577,259 @@ fun CoopSplitScreenPong(onBack: () -> Unit) {
                         Text(matchResultMsg, color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun CoopSplitScreenTugOfWar(onBack: () -> Unit) {
+    var playerTopScore by remember { mutableStateOf(50f) }
+    var matchResultMsg by remember { mutableStateOf("") }
+    var isRunning by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            @OptIn(ExperimentalMaterial3Api::class)
+            TopAppBar(
+                title = { Text("CO-OP TAUZIEHEN", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 16.sp) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        playerTopScore = 50f
+                        isRunning = false
+                        matchResultMsg = ""
+                    }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Neustart", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+            )
+        }
+    ) { paddingVals ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingVals)
+                .background(Color.Black)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Top Player Area
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(playerTopScore.coerceIn(5f, 95f))
+                        .background(Color(0xFFEAB308))
+                        .clickable(enabled = isRunning) {
+                            if (isRunning) {
+                                playerTopScore += 4f
+                                if (playerTopScore >= 95f) {
+                                    isRunning = false
+                                    matchResultMsg = "SPIELER 1 (Oben) GEWINNT!"
+                                }
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "TAP",
+                        color = Color.Black.copy(alpha = 0.5f),
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier.graphicsLayer { rotationZ = 180f }
+                    )
+                }
+
+                // Middle Divider
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .background(Color.White)
+                )
+
+                // Bottom Player Area
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight((100f - playerTopScore).coerceIn(5f, 95f))
+                        .background(Color(0xFF00FFCC))
+                        .clickable(enabled = isRunning) {
+                            if (isRunning) {
+                                playerTopScore -= 4f
+                                if (playerTopScore <= 5f) {
+                                    isRunning = false
+                                    matchResultMsg = "SPIELER 2 (Unten) GEWINNT!"
+                                }
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "TAP",
+                        color = Color.Black.copy(alpha = 0.5f),
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            }
+
+            if (!isRunning) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.7f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        if (matchResultMsg.isNotEmpty()) {
+                            Text(
+                                text = matchResultMsg,
+                                color = Color.White,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Black,
+                                modifier = Modifier.padding(bottom = 16.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                        Button(
+                            onClick = { 
+                                playerTopScore = 50f
+                                isRunning = true 
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                        ) {
+                            Text(if (matchResultMsg.isEmpty()) "START" else "NOCHMAL", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CoopSplitScreenReaction(onBack: () -> Unit) {
+    var gameState by remember { mutableStateOf("WAITING") } // WAITING, READY, GREEN, FINISHED
+    var message by remember { mutableStateOf("Klicke START!") }
+    var winner by remember { mutableStateOf(0) } // 0 = none, 1 = top, 2 = bottom
+
+    LaunchedEffect(gameState) {
+        if (gameState == "READY") {
+            val delayMs = kotlin.random.Random.nextLong(2000, 5000)
+            kotlinx.coroutines.delay(delayMs)
+            if (gameState == "READY") {
+                gameState = "GREEN"
+                message = "JETZT!"
+            }
+        }
+    }
+
+    val topColor = when (gameState) {
+        "WAITING" -> Color.DarkGray
+        "READY" -> Color.Red
+        "GREEN" -> Color.Green
+        "FINISHED" -> if (winner == 1) Color.Green else Color.DarkGray
+        else -> Color.DarkGray
+    }
+
+    val bottomColor = when (gameState) {
+        "WAITING" -> Color.DarkGray
+        "READY" -> Color.Red
+        "GREEN" -> Color.Green
+        "FINISHED" -> if (winner == 2) Color.Green else Color.DarkGray
+        else -> Color.DarkGray
+    }
+
+    Scaffold(
+        topBar = {
+            @OptIn(ExperimentalMaterial3Api::class)
+            TopAppBar(
+                title = { Text("CO-OP REAKTION", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 16.sp) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            // Player 1 (Top)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(topColor)
+                    .clickable {
+                        if (gameState == "READY") {
+                            gameState = "FINISHED"
+                            winner = 2 // Top clicked early (false start) -> Bottom wins
+                            message = "ZU FRÜH! Spieler 2 (Unten) gewinnt!"
+                        } else if (gameState == "GREEN") {
+                            gameState = "FINISHED"
+                            winner = 1
+                            message = "SPIELER 1 (Oben) GEWINNT!"
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Spieler 1", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.rotate(180f))
+            }
+
+            // Divider & Start
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+                    .background(Color.Black),
+                contentAlignment = Alignment.Center
+            ) {
+                if (gameState == "WAITING" || gameState == "FINISHED") {
+                    Button(
+                        onClick = {
+                            gameState = "READY"
+                            winner = 0
+                            message = "Warten auf Grün..."
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                    ) {
+                        Text(if (gameState == "FINISHED") "NOCHMAL" else "START", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Text(message, color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            // Player 2 (Bottom)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(bottomColor)
+                    .clickable {
+                        if (gameState == "READY") {
+                            gameState = "FINISHED"
+                            winner = 1 // Bottom clicked early (false start) -> Top wins
+                            message = "ZU FRÜH! Spieler 1 (Oben) gewinnt!"
+                        } else if (gameState == "GREEN") {
+                            gameState = "FINISHED"
+                            winner = 2
+                            message = "SPIELER 2 (Unten) GEWINNT!"
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Spieler 2", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

@@ -209,49 +209,50 @@ fun CalculatorScreen(
                             horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
                             row.forEach { char ->
-                                val isOperator = char in listOf("/", "*", "-", "+")
-                                val isClear = char in listOf("C", "⌫", "%")
-                                val isEquals = char == "="
+                                key(char) {
+                                    val isOperator = char in listOf("/", "*", "-", "+")
+                                    val isClear = char in listOf("C", "⌫", "%")
+                                    val isEquals = char == "="
 
-                                val btnBg = when {
-                                    isEquals -> palette.equalsKeyBg
-                                    isOperator -> palette.opKeysBg
-                                    isClear -> palette.clearKeysBg
-                                    else -> palette.numKeysBg
-                                }
-                                val btnTextColor = when {
-                                    isEquals -> palette.equalsKeyText
-                                    isOperator -> palette.accentColor
-                                    else -> palette.textPrimary
-                                }
-
-                                Button(
-                                    onClick = {
-                                        if (isEquals) viewModel.onCalculatorEvaluate()
-                                        else viewModel.onCalculatorChar(char)
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .testTag("calc_btn_$char"),
-                                    colors = ButtonDefaults.buttonColors(containerColor = btnBg),
-                                    shape = CircleShape,
-                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-                                    contentPadding = PaddingValues(0.dp)
-                                ) {
-                                    val displayChar = when(char) {
-                                        "/" -> "÷"
-                                        "*" -> "×"
-                                        "-" -> "−"
-                                        else -> char
+                                    val btnBg = when {
+                                        isEquals -> palette.equalsKeyBg
+                                        isOperator -> palette.opKeysBg
+                                        isClear -> palette.clearKeysBg
+                                        else -> palette.numKeysBg
                                     }
-                                    Text(
-                                        text = displayChar,
-                                        fontSize = 26.sp,
-                                        fontWeight = if (isOperator || isEquals) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (!isOperator && !isEquals && !isClear) Color.White else btnTextColor,
-                                        fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.SansSerif
-                                    )
+                                    val btnTextColor = when {
+                                        isEquals -> palette.equalsKeyText
+                                        isOperator -> palette.accentColor
+                                        else -> palette.textPrimary
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .clip(CircleShape)
+                                            .background(btnBg)
+                                            .clickable {
+                                                if (isEquals) viewModel.onCalculatorEvaluate()
+                                                else viewModel.onCalculatorChar(char)
+                                            }
+                                            .testTag("calc_btn_$char"),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        val displayChar = when(char) {
+                                            "/" -> "÷"
+                                            "*" -> "×"
+                                            "-" -> "−"
+                                            else -> char
+                                        }
+                                        Text(
+                                            text = displayChar,
+                                            fontSize = 26.sp,
+                                            fontWeight = if (isOperator || isEquals) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (!isOperator && !isEquals && !isClear) Color.White else btnTextColor,
+                                            fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.SansSerif
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -331,50 +332,51 @@ fun CalculatorScreen(
                             horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
                             row.forEach { char ->
-                                val isOperator = char in listOf("/", "*", "-", "+")
-                                val isClear = char in listOf("C", "⌫", "%")
-                                val isEquals = char == "="
+                                key(char) {
+                                    val isOperator = char in listOf("/", "*", "-", "+")
+                                    val isClear = char in listOf("C", "⌫", "%")
+                                    val isEquals = char == "="
 
-                                val btnBg = when {
-                                    isEquals -> palette.equalsKeyBg
-                                    isOperator -> palette.opKeysBg
-                                    isClear -> palette.clearKeysBg
-                                    else -> palette.numKeysBg
-                                }
-
-                                val btnTextColor = when {
-                                    isEquals -> palette.equalsKeyText
-                                    isOperator -> palette.accentColor
-                                    else -> palette.textPrimary
-                                }
-
-                                Button(
-                                    onClick = {
-                                        if (isEquals) viewModel.onCalculatorEvaluate()
-                                        else viewModel.onCalculatorChar(char)
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f) // Account for spacing in weight
-                                        .fillMaxHeight()
-                                        .testTag("calc_btn_$char"),
-                                    colors = ButtonDefaults.buttonColors(containerColor = btnBg),
-                                    shape = CircleShape,
-                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-                                    contentPadding = PaddingValues(0.dp)
-                                ) {
-                                    val displayChar = when(char) {
-                                        "/" -> "÷"
-                                        "*" -> "×"
-                                        "-" -> "−"
-                                        else -> char
+                                    val btnBg = when {
+                                        isEquals -> palette.equalsKeyBg
+                                        isOperator -> palette.opKeysBg
+                                        isClear -> palette.clearKeysBg
+                                        else -> palette.numKeysBg
                                     }
-                                    Text(
-                                        text = displayChar,
-                                        fontSize = 32.sp,
-                                        fontWeight = if (isOperator || isEquals) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (!isOperator && !isEquals && !isClear) Color.White else btnTextColor,
-                                        fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.SansSerif
-                                    )
+
+                                    val btnTextColor = when {
+                                        isEquals -> palette.equalsKeyText
+                                        isOperator -> palette.accentColor
+                                        else -> palette.textPrimary
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f) // Account for spacing in weight
+                                            .fillMaxHeight()
+                                            .clip(CircleShape)
+                                            .background(btnBg)
+                                            .clickable {
+                                                if (isEquals) viewModel.onCalculatorEvaluate()
+                                                else viewModel.onCalculatorChar(char)
+                                            }
+                                            .testTag("calc_btn_$char"),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        val displayChar = when(char) {
+                                            "/" -> "÷"
+                                            "*" -> "×"
+                                            "-" -> "−"
+                                            else -> char
+                                        }
+                                        Text(
+                                            text = displayChar,
+                                            fontSize = 32.sp,
+                                            fontWeight = if (isOperator || isEquals) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (!isOperator && !isEquals && !isClear) Color.White else btnTextColor,
+                                            fontFamily = if (palette.isRetroMono) FontFamily.Monospace else FontFamily.SansSerif
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -938,6 +940,12 @@ fun GamesTabScreen(viewModel: AppViewModel) {
             GameType.COOP_SPLIT_SCREEN -> CoopSplitScreenPong(
                 onBack = { viewModel.activeGame = GameType.HOME }
             )
+            GameType.COOP_SPLIT_TUG_OF_WAR -> CoopSplitScreenTugOfWar(
+                onBack = { viewModel.activeGame = GameType.HOME }
+            )
+            GameType.COOP_SPLIT_REACTION -> CoopSplitScreenReaction(
+                onBack = { viewModel.activeGame = GameType.HOME }
+            )
         }
     }
 
@@ -1004,6 +1012,9 @@ fun GamesCatalogView(
         item {
             Column {
                 val gamesList = listOf(
+                    Triple("CO-OP PONG", "1v1 Split Screen Tischtennis!", "Split" to GameType.COOP_SPLIT_SCREEN),
+                    Triple("CO-OP TAUZIEHEN", "Tap War: Drücke so schnell du kannst!", "Split" to GameType.COOP_SPLIT_TUG_OF_WAR),
+                    Triple("CO-OP REAKTION", "Wer reagiert schneller bei Grün?", "Split" to GameType.COOP_SPLIT_REACTION),
                     Triple("SLOT MACHINE", "Drehe die Rollen für den Jackpot!", "Slots" to GameType.SLOTS),
                     Triple("BLACKJACK", "Zieh Karten und schlag den Dealer!", "21" to GameType.BLACKJACK),
                     Triple("MINES", "Sammle Edelsteine, meide Minen!", "Mines" to GameType.MINES),
@@ -1019,6 +1030,9 @@ fun GamesCatalogView(
                 )
 
                 val icons = listOf(
+                    Icons.Default.SportsTennis,
+                    Icons.Default.PanTool,
+                    Icons.Default.Timer,
                     Icons.Default.MonetizationOn,
                     Icons.Default.Style,
                     Icons.Default.Warning,
@@ -1034,6 +1048,7 @@ fun GamesCatalogView(
                 )
 
                 val colors = listOf(
+                    Color(0xFF8B5CF6), Color(0xFFEF4444), Color(0xFF10B981),
                     Color(0xFF8B5CF6), Color(0xFFEF4444), Color(0xFFF59E0B),
                     Color(0xFF10B981), Color(0xFFEAB308), Color(0xFF3B82F6),
                     Color(0xFFEC4899), Color(0xFF3B82F6), Color(0xFFEC4899),
@@ -1106,19 +1121,22 @@ fun GamesCatalogView(
                 val toolsList = listOf(
                     Triple("MOCK GPS", "Aktiven GPS-Standort virtuell vortäuschen", "Standort" to GameType.MOCK_GPS),
                     Triple("TARNUNG", "Rechner-Layout und Faux-Verhalten config", "Theme/Tarn" to GameType.DISGUISE_SETTINGS),
-                    Triple("SPLIT COOP", "Zwei-Spieler Split-Screen Pong Duell", "Split Duo" to GameType.COOP_SPLIT_SCREEN)
+                    Triple("SPLIT PONG", "Zwei-Spieler Split-Screen Pong Duell", "Split Duo" to GameType.COOP_SPLIT_SCREEN),
+                    Triple("SPLIT TAUZIEHEN", "Zwei-Spieler Split-Screen Klick Duell", "Split Duo" to GameType.COOP_SPLIT_TUG_OF_WAR)
                 )
 
                 val toolIcons = listOf(
                     Icons.Default.LocationOn,
                     Icons.Default.Masks,
-                    Icons.Default.PlayArrow
+                    Icons.Default.PlayArrow,
+                    Icons.Default.TouchApp
                 )
 
                 val toolColors = listOf(
                     Color(0xFF00FFCC),
                     Color(0xFFEAB308),
-                    Color(0xFFFF5722)
+                    Color(0xFFFF5722),
+                    Color(0xFF8B5CF6)
                 )
 
                 for (i in toolsList.indices step 2) {
