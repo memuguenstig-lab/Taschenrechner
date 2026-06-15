@@ -62,6 +62,11 @@ import com.example.ui.games.SnakeGame
 import com.example.ui.games.TetrisGame
 import com.example.ui.games.TicTacToeGame
 import com.example.ui.games.MemoryGame
+import com.example.ui.games.DriftCarGame
+import com.example.ui.games.CrowdRunnerGame
+import com.example.ui.games.RhythmTapperGame
+import com.example.ui.games.RetroSpaceShooterGame
+import com.example.ui.games.LocalWifiFileServer
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -157,34 +162,30 @@ fun CalculatorScreen(
                     horizontalAlignment = Alignment.End
                 ) {
                     // Typed Math expression formula
-                    Text(
+                    AnimatedCalculatorText(
                         text = viewModel.calculatorInput.ifEmpty { "0" },
                         fontSize = 32.sp,
                         color = Color.White,
                         fontFamily = FontFamily.Monospace,
-                        textAlign = TextAlign.End,
-                        maxLines = 1,
+                        testTag = "calculator_input_display",
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
-                            .testTag("calculator_input_display")
                     )
 
                     Spacer(modifier = Modifier.height(4.dp))
 
                     // Computed Result
-                    Text(
+                    AnimatedCalculatorText(
                         text = viewModel.calculatorOutput.ifEmpty { "" },
                         fontSize = 48.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                         letterSpacing = (-0.02).sp,
-                        textAlign = TextAlign.End,
-                        maxLines = 1,
+                        testTag = "calculator_result_display",
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
-                            .testTag("calculator_result_display")
                     )
                 }
 
@@ -278,34 +279,30 @@ fun CalculatorScreen(
                     horizontalAlignment = Alignment.End
                 ) {
                     // History Line (Ghost expression)
-                    Text(
+                    AnimatedCalculatorText(
                         text = viewModel.calculatorInput.ifEmpty { "0" },
                         fontSize = 40.sp,
                         color = Color.White,
                         fontFamily = FontFamily.Monospace,
-                        textAlign = TextAlign.End,
-                        maxLines = 1,
+                        testTag = "calculator_input_display",
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
-                            .testTag("calculator_input_display")
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // Computed Result
-                    Text(
+                    AnimatedCalculatorText(
                         text = viewModel.calculatorOutput.ifEmpty { "" },
                         fontSize = 64.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                         letterSpacing = (-0.02).sp,
-                        textAlign = TextAlign.End,
-                        maxLines = 1,
+                        testTag = "calculator_result_display",
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
-                            .testTag("calculator_result_display")
                     )
                 }
 
@@ -946,6 +943,21 @@ fun GamesTabScreen(viewModel: AppViewModel) {
             GameType.COOP_SPLIT_REACTION -> CoopSplitScreenReaction(
                 onBack = { viewModel.activeGame = GameType.HOME }
             )
+            GameType.DRIFT_CAR -> DriftCarGame(
+                onBack = { viewModel.activeGame = GameType.HOME }
+            )
+            GameType.CROWD_RUNNER -> CrowdRunnerGame(
+                onBack = { viewModel.activeGame = GameType.HOME }
+            )
+            GameType.RHYTHM_TAPPER -> RhythmTapperGame(
+                onBack = { viewModel.activeGame = GameType.HOME }
+            )
+            GameType.SPACE_SHOOTER -> RetroSpaceShooterGame(
+                onBack = { viewModel.activeGame = GameType.HOME }
+            )
+            GameType.WIFI_SERVER -> LocalWifiFileServer(
+                onBack = { viewModel.activeGame = GameType.HOME }
+            )
         }
     }
 
@@ -1012,6 +1024,11 @@ fun GamesCatalogView(
         item {
             Column {
                 val gamesList = listOf(
+                    Triple("BEAT SLAM & CO.", "Triff fallende Beams im Takt!", "Tapper" to GameType.RHYTHM_TAPPER),
+                    Triple("SPACE SHOOTER", "Verteidige das All im Retro-Style!", "Retro" to GameType.SPACE_SHOOTER),
+                    Triple("WI-FI SHARE", "Dateien per Webbrowser übertragen!", "Utility" to GameType.WIFI_SERVER),
+                    Triple("CROWD RUNNER", "Sammle so viele Männer wie möglich!", "Crowd" to GameType.CROWD_RUNNER),
+                    Triple("DRIFT CAR", "Drifte ohne zu crashen!", "Drift" to GameType.DRIFT_CAR),
                     Triple("CO-OP PONG", "1v1 Split Screen Tischtennis!", "Split" to GameType.COOP_SPLIT_SCREEN),
                     Triple("CO-OP TAUZIEHEN", "Tap War: Drücke so schnell du kannst!", "Split" to GameType.COOP_SPLIT_TUG_OF_WAR),
                     Triple("CO-OP REAKTION", "Wer reagiert schneller bei Grün?", "Split" to GameType.COOP_SPLIT_REACTION),
@@ -1030,6 +1047,11 @@ fun GamesCatalogView(
                 )
 
                 val icons = listOf(
+                    Icons.Default.MusicNote,
+                    Icons.Default.Navigation,
+                    Icons.Default.Wifi,
+                    Icons.Default.DirectionsRun,
+                    Icons.Default.DirectionsCar,
                     Icons.Default.SportsTennis,
                     Icons.Default.PanTool,
                     Icons.Default.Timer,
@@ -1048,6 +1070,8 @@ fun GamesCatalogView(
                 )
 
                 val colors = listOf(
+                    Color(0xFFEC4899), Color(0xFF00FFCC), Color(0xFF3B82F6),
+                    Color(0xFF3B82F6), Color(0xFFEF4444),
                     Color(0xFF8B5CF6), Color(0xFFEF4444), Color(0xFF10B981),
                     Color(0xFF8B5CF6), Color(0xFFEF4444), Color(0xFFF59E0B),
                     Color(0xFF10B981), Color(0xFFEAB308), Color(0xFF3B82F6),
@@ -1941,5 +1965,48 @@ fun AppUpdateCenter(viewModel: AppViewModel) {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun AnimatedCalculatorText(
+    text: String,
+    fontSize: androidx.compose.ui.unit.TextUnit,
+    fontWeight: FontWeight = FontWeight.Normal,
+    color: Color = Color.White,
+    fontFamily: FontFamily = FontFamily.Monospace,
+    letterSpacing: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
+    testTag: String,
+    modifier: Modifier = Modifier
+) {
+    AnimatedContent(
+        targetState = text,
+        transitionSpec = {
+            if (targetState.length > initialState.length) {
+                (slideInVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium)) { it / 2 } 
+                        + fadeIn(tween(120)) 
+                        + scaleIn(initialScale = 0.88f))
+                    .togetherWith(fadeOut(tween(120)) + scaleOut(targetScale = 0.96f))
+            } else {
+                (fadeIn(tween(120)) + scaleIn(initialScale = 1.05f))
+                    .togetherWith(slideOutVertically(animationSpec = spring(stiffness = Spring.StiffnessMedium)) { it / 2 } 
+                        + fadeOut(tween(120)) 
+                        + scaleOut(targetScale = 0.88f))
+            }
+        },
+        label = testTag,
+        modifier = modifier
+    ) { displayedText ->
+        Text(
+            text = displayedText,
+            fontSize = fontSize,
+            fontWeight = fontWeight,
+            color = color,
+            fontFamily = fontFamily,
+            letterSpacing = letterSpacing,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

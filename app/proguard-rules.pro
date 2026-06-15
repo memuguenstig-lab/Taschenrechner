@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Prevent R8 from warning or optimizing away com.sun.net.httpserver which is part of the JDK
+-dontwarn com.sun.net.httpserver.**
+-keep class com.sun.net.httpserver.** { *; }
+
