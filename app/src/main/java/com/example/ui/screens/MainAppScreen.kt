@@ -589,6 +589,7 @@ fun SecretArcadeDashboard(
         )
     } else {
         listOf(
+            SecretSection.STATS,
             SecretSection.GAMES,
             SecretSection.CHAT,
             SecretSection.BROWSER,
@@ -627,26 +628,27 @@ fun SecretArcadeDashboard(
                         .fillMaxWidth()
                         .navigationBarsPadding()
                         .padding(bottom = 16.dp)
-                        .background(Color.White),
+                        .background(Color(0xFF0F172A)),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     androidx.compose.material3.ScrollableTabRow(
                         selectedTabIndex = pagerState.currentPage,
                         containerColor = Color.Transparent,
-                        contentColor = Color(0xFF0F172A),
+                        contentColor = Color(0xFF00FFCC),
                         edgePadding = 8.dp,
                         modifier = Modifier.weight(1f),
                         indicator = { tabPositions ->
                             if (pagerState.currentPage < tabPositions.size) {
                                 androidx.compose.material3.TabRowDefaults.SecondaryIndicator(
                                     modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                                    color = Color(0xFF10B981)
+                                    color = Color(0xFF00FFCC)
                                 )
                             }
                         }
                     ) {
                         pages.forEachIndexed { index, section ->
                             val icon = when (section) {
+                                SecretSection.STATS -> Icons.Default.BarChart
                                 SecretSection.GAMES -> Icons.Default.SportsEsports
                                 SecretSection.CHAT -> Icons.Default.SmartToy
                                 SecretSection.BROWSER -> Icons.Default.Public
@@ -655,6 +657,7 @@ fun SecretArcadeDashboard(
                                 else -> Icons.Default.Circle
                             }
                             val label = when (section) {
+                                SecretSection.STATS -> "Stats"
                                 SecretSection.GAMES -> "Spiele"
                                 SecretSection.CHAT -> "KI"
                                 SecretSection.BROWSER -> "Web"
@@ -667,8 +670,8 @@ fun SecretArcadeDashboard(
                                 onClick = { viewModel.currentSecretSection = section },
                                 icon = { Icon(icon, contentDescription = label) },
                                 text = { Text(label, fontSize = 10.sp) },
-                                selectedContentColor = Color(0xFF0F172A),
-                                unselectedContentColor = Color(0xFF0F172A).copy(alpha = 0.4f)
+                                selectedContentColor = Color(0xFF00FFCC),
+                                unselectedContentColor = Color.White.copy(alpha = 0.5f)
                             )
                         }
                     }
@@ -681,7 +684,7 @@ fun SecretArcadeDashboard(
                             Icon(
                                 imageVector = Icons.Default.Settings,
                                 contentDescription = "Einstellungen",
-                                tint = Color(0xFF0F172A).copy(alpha = 0.6f)
+                                tint = Color.White.copy(alpha = 0.7f)
                             )
                         }
                     }
@@ -705,7 +708,7 @@ fun SecretArcadeDashboard(
                 }
             }
         },
-        containerColor = Color(0xFFF1F5F9)
+        containerColor = Color(0xFF15171C)
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -723,6 +726,7 @@ fun SecretArcadeDashboard(
                     beyondViewportPageCount = pages.size
                 ) { page ->
                     when (pages[page]) {
+                        SecretSection.STATS -> StatsTabScreen(viewModel)
                         SecretSection.GAMES -> GamesTabScreen(viewModel)
                         SecretSection.CHAT -> ChatBotTabScreen(viewModel)
                         SecretSection.BROWSER -> BrowserTabScreen(viewModel)
@@ -738,6 +742,21 @@ fun SecretArcadeDashboard(
 
 
 // --- TAB SUB-SCREENS ---
+
+@Composable
+fun StatsTabScreen(viewModel: AppViewModel) {
+    androidx.compose.foundation.lazy.LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            SpionageDashboardView(viewModel = viewModel)
+        }
+    }
+}
 
 @Composable
 fun SecretSettingsTabScreen(viewModel: AppViewModel) {
@@ -844,7 +863,7 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                     Icon(
                         imageVector = Icons.Default.Security,
                         contentDescription = "Identifizierung",
-                        tint = Color(0xFF0F172A),
+                        tint = Color(0xFF00FFCC),
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -853,7 +872,7 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace,
-                        color = Color(0xFF0F172A)
+                        color = Color.White
                     )
                 }
             },
@@ -862,7 +881,7 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                     Text(
                         "Gib vor Spielstart deinen Spionage-Decknamen ein, um deinen Score und Ränge im Geheimbereich zu speichern.",
                         fontSize = 12.sp,
-                        color = Color(0xFF64748B),
+                        color = Color(0xFF94A3B8),
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     androidx.compose.material3.OutlinedTextField(
@@ -872,10 +891,12 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                         placeholder = { Text("Agent James") },
                         singleLine = true,
                         colors = androidx.compose.material3.TextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedTextColor = Color(0xFF0F172A),
-                            unfocusedTextColor = Color(0xFF0F172A)
+                            focusedContainerColor = Color(0xFF0F172A),
+                            unfocusedContainerColor = Color(0xFF0F172A),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedLabelColor = Color(0xFF00FFCC),
+                            unfocusedLabelColor = Color(0xFF94A3B8)
                         ),
                         modifier = Modifier.fillMaxWidth().testTag("agent_name_input")
                     )
@@ -900,10 +921,10 @@ fun GamesTabScreen(viewModel: AppViewModel) {
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showNamePromptForGame = null }) {
-                    Text("Abbrechen", color = Color(0xFF64748B))
+                    Text("Abbrechen", color = Color(0xFF94A3B8))
                 }
             },
-            containerColor = Color.White,
+            containerColor = Color(0xFF1F2937),
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -1061,6 +1082,8 @@ fun GamesTabScreen(viewModel: AppViewModel) {
             GameType.DRIFT_CAR -> DriftCarGame(
                 highScore = viewModel.driftHighScore,
                 onHighScoreUpdate = { viewModel.driftHighScore = it },
+                coins = viewModel.coins,
+                onCoinsUpdate = { viewModel.coins = it },
                 onBack = { viewModel.activeGame = GameType.HOME }
             )
             GameType.CROWD_RUNNER -> CrowdRunnerGame(
@@ -1120,11 +1143,6 @@ fun GamesCatalogView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // --- SPIONAGE-DASHBOARD (HIGHSCORES & TROPHÄEN) ---
-        item {
-            SpionageDashboardView(viewModel = viewModel)
-        }
-
         // --- SECTION 1: SPIELESAMMLUNG (Games Collection) ---
         item {
             Row(
@@ -1144,7 +1162,7 @@ fun GamesCatalogView(
                     "🕹️ SPIELESAMMLUNG",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
+                    color = Color.White
                 )
             }
         }
@@ -1263,7 +1281,7 @@ fun GamesCatalogView(
                     "🛡️ SPY & SECURITY CORNER",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
+                    color = Color.White
                 )
             }
         }
@@ -1365,8 +1383,8 @@ fun GameCard(
             }
             .clickable { onClick() }
             .testTag("game_card_$title"),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937)),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(
@@ -1394,14 +1412,14 @@ fun GameCard(
                     text = title,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Black,
-                    color = Color(0xFF0F172A),
+                    color = Color.White,
                     textAlign = TextAlign.Center,
                     maxLines = 1
                 )
                 Text(
                     text = description,
                     fontSize = 9.sp,
-                    color = Color(0xFF64748B),
+                    color = Color(0xFF94A3B8),
                     textAlign = TextAlign.Center,
                     lineHeight = 11.sp,
                     maxLines = 2
@@ -2194,9 +2212,9 @@ fun SpionageDashboardView(viewModel: AppViewModel) {
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .testTag("agency_dashboard_card"),
-        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color(0xFF1F2937)),
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color(0xFF1E293B))
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Header Row

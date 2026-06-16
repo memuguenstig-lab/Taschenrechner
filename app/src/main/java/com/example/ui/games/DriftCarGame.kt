@@ -4,6 +4,11 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,13 +53,69 @@ data class TyreSkid(
     var alpha: Float = 1.0f
 )
 
+data class CarSkin(
+    val id: String,
+    val name: String,
+    val bodyColor: Color,
+    val accentColor: Color,
+    val underglowColor: Color,
+    val price: Int,
+    val isUnlockByScore: Boolean = false,
+    val requiredScore: Int = 0,
+    val description: String = ""
+)
+
+val DriftCarSkins = listOf(
+    CarSkin("classic", "Neon Shadow", Color(0xFF1E293B), Color(0xFF00FFCC), Color(0xFF00FFCC), 0, description = "Der klassische Agency-Einsatzwagen."),
+    CarSkin("red_baron", "Rot-Baron", Color(0xFF991B1B), Color(0xFFFBBF24), Color(0xFFEF4444), 100, description = "Aggressives Rot mit goldenen Carbonlinien."),
+    CarSkin("tokyo_midnight", "Tokyo Midnight", Color(0xFF2E1065), Color(0xFFF472B6), Color(0xFFFF00CC), 200, description = "Perfekt für illegale nächtliche Straßenrennen."),
+    CarSkin("golden_phoenix", "Golden Phoenix", Color(0xFF0F172A), Color(0xFFFACC15), Color(0xFFEAB308), 350, description = "Reiner Luxus für Meisterspione."),
+    CarSkin("toxic_venom", "Toxic Venom", Color(0xFF064E3B), Color(0xFFA3E635), Color(0xFF22C55E), 150, description = "Giftgrünes Schleier-Design."),
+    CarSkin("arctic_blizzard", "Arctic Blizzard", Color(0xFFF8FAFC), Color(0xFF38BDF8), Color(0xFF0EA5E9), 150, description = "Eisweißes Winter-Tarnmuster."),
+    CarSkin("reaper", "Phantom Reaper", Color(0xFF020617), Color(0xFF94A3B8), Color(0xFF64748B), 0, isUnlockByScore = true, requiredScore = 300, description = "Freigeschaltet ab einem Rekord von 300 Punkten!")
+)
+
+fun isSkinUnlocked(skin: CarSkin, hs: Int, unlockedSet: Set<String>): Boolean {
+    if (skin.price == 0 && !skin.isUnlockByScore) return true
+    if (skin.isUnlockByScore) return hs >= skin.requiredScore
+    return unlockedSet.contains(skin.id)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DriftCarGame(
     highScore: Int,
     onHighScoreUpdate: (Int) -> Unit,
+    coins: Int,
+    onCoinsUpdate: (Int) -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("game_stats", Context.MODE_PRIVATE) }
+    
+    var selectedSkinId by remember { mutableStateOf(prefs.getString("selected_car_skin", "classic") ?: "classic") }
+    var unlockedSkinsString by remember { mutableStateOf(prefs.getString("unlocked_car_skins", "classic") ?: "classic") }
+    val unlockedSkins = remember(unlockedSkinsString) { unlockedSkinsString.split(",").toSet() }
+
+    val currentSkin = remember(selectedSkinId) {
+        DriftCarSkins.find { it.id == selectedSkinId } ?: DriftCarSkins[0]
+    }
+
+    fun selectSkin(skin: CarSkin) {
+        selectedSkinId = skin.id
+        prefs.edit().putString("selected_car_skin", skin.id).apply()
+    }
+
+    fun unlockSkin(skin: CarSkin) {
+        if (coins >= skin.price) {
+            onCoinsUpdate(coins - skin.price)
+            val newUnlocked = (unlockedSkins + skin.id).joinToString(",")
+            unlockedSkinsString = newUnlocked
+            prefs.edit().putString("unlocked_car_skins", newUnlocked).apply()
+            selectSkin(skin)
+        }
+    }
+
     var isRunning by remember { mutableStateOf(false) }
     var gameOver by remember { mutableStateOf(false) }
     var score by remember { mutableStateOf(0) }
@@ -62,6 +123,7 @@ fun DriftCarGame(
     var highscore by remember(highScore) { mutableStateOf(highScore) }
     var isCarInitialized by remember { mutableStateOf(false) }
     var prevCw by remember { mutableStateOf(0f) }
+    var coinsAddedForThisRun by remember { mutableStateOf(false) }
 
     // Physical Car variables (computed in pixels during canvas loop)
     var carX by remember { mutableStateOf(0f) } // Initialized in first loop
@@ -98,6 +160,7 @@ fun DriftCarGame(
         speedMultiplier = 1.0f
         smokeParticles.clear()
         skidMarks.clear()
+        coinsAddedForThisRun = false
     }
 
     // Curving road center generator based on world Y coordinate
@@ -423,6 +486,13 @@ fun DriftCarGame(
                             highscore = score
                             onHighScoreUpdate(score)
                         }
+                        if (!coinsAddedForThisRun) {
+                            val earned = if (score > 10) (score / 40).coerceAtMost(30) else 0
+                            if (earned > 0) {
+                                onCoinsUpdate(coins + earned)
+                            }
+                            coinsAddedForThisRun = true
+                        }
                     }
                 }
 
@@ -475,7 +545,7 @@ fun DriftCarGame(
                 drawContext.canvas.restore()
 
                 // Neon underglow aura
-                val underglowColor = if (isDrifting) Color(0xFFFF00CC) else Color(0xFF00FFCC)
+                val underglowColor = if (isDrifting) Color(0xFFFF00CC) else currentSkin.underglowColor
                 drawRoundRect(
                     color = underglowColor.copy(alpha = 0.35f + sin((distanceTraveled * 0.1f)).coerceIn(-0.2f, 0.2f)),
                     topLeft = Offset(-carW * 0.7f, -carH * 0.6f),
@@ -487,14 +557,14 @@ fun DriftCarGame(
                 // Sports car body frame hull
                 // Hood area
                 drawRoundRect(
-                    color = Color(0xFF1E293B),
+                    color = currentSkin.bodyColor,
                     topLeft = Offset(-carW/2, -carH/2),
                     size = Size(carW, carH),
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f, 10f)
                 )
                 // Supercar aerodynamic lines
                 drawRoundRect(
-                    color = underglowColor,
+                    color = currentSkin.accentColor,
                     topLeft = Offset(-carW/2, -carH/2),
                     size = Size(carW, carH),
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f, 10f),
@@ -509,7 +579,7 @@ fun DriftCarGame(
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
                 )
                 drawRoundRect(
-                    color = Color(0xFF00FFCC),
+                    color = currentSkin.accentColor,
                     topLeft = Offset(-carW * 0.38f, -carH * 0.15f),
                     size = Size(carW * 0.76f, carH * 0.35f),
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f),
@@ -528,7 +598,7 @@ fun DriftCarGame(
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f, 2f)
                 )
                 drawLine(
-                    color = underglowColor,
+                    color = currentSkin.accentColor,
                     start = Offset(-carW * 0.6f, carH/2 - 2f),
                     end = Offset(carW * 0.6f, carH/2 - 2f),
                     strokeWidth = 3f
@@ -542,43 +612,197 @@ fun DriftCarGame(
                 // Main Entrance Screen
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp)
+                        .fillMaxWidth(0.92f)
+                        .padding(vertical = 12.dp)
                         .background(Color(0xFF0F172A).copy(alpha = 0.95f), RoundedCornerShape(16.dp))
                         .border(2.dp, Color(0xFF00FFCC), RoundedCornerShape(16.dp))
-                        .padding(24.dp),
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        "🏎️ HYPER DRIFT API",
-                        fontSize = 24.sp,
+                        "🏎️ HYPER DRIFT ARCADE",
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Black,
                         color = Color(0xFF00FFCC),
                         fontFamily = FontFamily.Monospace,
                         textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Drifte auf einer unendlichen kurvigen Autobahn! Halte die Tasten LINKS und RECHTS gedrückt, um dein Heck ausbrechen zu lassen und fette Drift-Kombos aufzubauen. Berühre die Grasgrenzen nicht zu weit, sonst crashst du!",
+                        "Drifte auf einer unendlichen kurvigen Autobahn! Halte die Tasten LINKS und RECHTS gedrückt, um dein Heck ausbrechen zu lassen. Berühre die Grasgrenzen nicht, sonst crashst du!",
                         color = Color.LightGray,
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         textAlign = TextAlign.Center,
-                        lineHeight = 18.sp,
+                        lineHeight = 16.sp,
                         fontFamily = FontFamily.SansSerif
                     )
 
                     if (highscore > 0) {
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         Text(
                             "BEST SCORE: $highscore",
                             color = Color(0xFFFF00CC),
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Budget Display
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "DEIN GUTHABEN: ",
+                            color = Color.LightGray,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            "$coins 💰",
+                            color = Color(0xFFFACC15),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        "🏎️ DRIFT-GARAGE / SKINS",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF00FFCC),
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.align(Alignment.Start).padding(bottom = 6.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        DriftCarSkins.forEach { skin ->
+                            val isUnlocked = isSkinUnlocked(skin, highscore, unlockedSkins)
+                            val isSelected = skin.id == selectedSkinId
+                            
+                            Box(
+                                modifier = Modifier
+                                    .width(135.dp)
+                                    .background(
+                                        if (isSelected) Color(0xFF1E293B) else Color(0xFF0A0F1D),
+                                        RoundedCornerShape(12.dp)
+                                    )
+                                    .border(
+                                        width = if (isSelected) 2.dp else 1.dp,
+                                        color = if (isSelected) Color(0xFF00FFCC) else Color(0xFF334155),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable {
+                                        if (isUnlocked) {
+                                            selectSkin(skin)
+                                        } else if (skin.price > 0 && coins >= skin.price) {
+                                            unlockSkin(skin)
+                                        }
+                                    }
+                                    .padding(8.dp)
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    // Mini Car Color preview block
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(24.dp)
+                                            .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    ) {
+                                        // Underglow color indicator
+                                        Box(modifier = Modifier.size(8.dp).background(skin.underglowColor, CircleShape).border(1.dp, Color.White, CircleShape))
+                                        // Body color indicator
+                                        Box(modifier = Modifier.size(12.dp).background(skin.bodyColor, RoundedCornerShape(2.dp)).border(1.dp, Color.White, RoundedCornerShape(2.dp)))
+                                        // Accent color indicator
+                                        Box(modifier = Modifier.size(8.dp).background(skin.accentColor, CircleShape).border(1.dp, Color.White, CircleShape))
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    
+                                    Text(
+                                        skin.name,
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace,
+                                        maxLines = 1,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    
+                                    Text(
+                                        skin.description,
+                                        color = Color.Gray,
+                                        fontSize = 8.sp,
+                                        lineHeight = 10.sp,
+                                        maxLines = 2,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.height(22.dp)
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    
+                                    // Purchase/Status Badge
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(
+                                                when {
+                                                    isSelected -> Color(0xFF00FFCC)
+                                                    isUnlocked -> Color(0xFF1E293B)
+                                                    else -> Color(0xFF0F172A)
+                                                },
+                                                RoundedCornerShape(6.dp)
+                                            )
+                                            .padding(vertical = 4.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        when {
+                                            isSelected -> {
+                                                Text("AKTIV 🏎️", color = Color.Black, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                            isUnlocked -> {
+                                                Text("WÄHLEN", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                            skin.isUnlockByScore -> {
+                                                Text("🏆 HS: ${skin.requiredScore}", color = Color(0xFFEF4444), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                            else -> {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text("${skin.price}", color = Color(0xFFFACC15), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                                    Spacer(modifier = Modifier.width(2.dp))
+                                                    Text("💰", fontSize = 8.sp)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
                         onClick = {
@@ -589,6 +813,7 @@ fun DriftCarGame(
                             driftCombo = 0f
                             steerLeftPressed = false
                             steerRightPressed = false
+                            coinsAddedForThisRun = false
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFCC)),
                         modifier = Modifier
@@ -765,6 +990,26 @@ fun DriftCarGame(
                             color = Color.LightGray,
                             fontSize = 14.sp
                         )
+
+                        val coinsEarned = if (score > 10) (score / 40).coerceAtMost(30) else 0
+                        if (coinsEarned > 0) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                "💰 COIN-BELOHNUNG: +$coinsEarned COINS!",
+                                color = Color(0xFFFACC15),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "NEUES GUTHABEN: $coins 💰",
+                            color = Color.LightGray,
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Row(
@@ -793,7 +1038,7 @@ fun DriftCarGame(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
                         Button(
                             onClick = {
@@ -807,6 +1052,7 @@ fun DriftCarGame(
                                 steerLeftPressed = false
                                 steerRightPressed = false
                                 distanceTraveled = 0f
+                                coinsAddedForThisRun = false
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
                             modifier = Modifier.fillMaxWidth().height(48.dp),

@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 enum class SecretSection {
-    GAMES, CHAT, GALLERY, BROWSER, WATCH, SETTINGS
+    STATS, GAMES, CHAT, GALLERY, BROWSER, WATCH, SETTINGS
 }
 
 enum class GameType {
