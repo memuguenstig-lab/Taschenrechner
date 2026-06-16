@@ -50,12 +50,18 @@ data class TyreSkid(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DriftCarGame(onBack: () -> Unit) {
+fun DriftCarGame(
+    highScore: Int,
+    onHighScoreUpdate: (Int) -> Unit,
+    onBack: () -> Unit
+) {
     var isRunning by remember { mutableStateOf(false) }
     var gameOver by remember { mutableStateOf(false) }
     var score by remember { mutableStateOf(0) }
     var driftCombo by remember { mutableStateOf(0f) }
-    var highscore by remember { mutableStateOf(0) }
+    var highscore by remember(highScore) { mutableStateOf(highScore) }
+    var isCarInitialized by remember { mutableStateOf(false) }
+    var prevCw by remember { mutableStateOf(0f) }
 
     // Physical Car variables (computed in pixels during canvas loop)
     var carX by remember { mutableStateOf(0f) } // Initialized in first loop
@@ -99,10 +105,21 @@ fun DriftCarGame(onBack: () -> Unit) {
         val mid = canvasWidth / 2f
         val amp1 = canvasWidth * 0.22f
         val amp2 = canvasWidth * 0.08f
-        // Smooth sine wave curves
-        return mid + 
-               amp1 * sin(worldY * 0.0016f) + 
-               amp2 * cos(worldY * 0.0041f)
+        
+        // Start straight for travel distance up to 2400f, then transition smoothly over the next 2000f
+        val straightLength = 2400f
+        val transitionLength = 2000f
+        val blend = when {
+            worldY <= straightLength -> 0f
+            worldY >= straightLength + transitionLength -> 1f
+            else -> {
+                val t = (worldY - straightLength) / transitionLength
+                t * t * (3f - 2f * t) // Smoothstep
+            }
+        }
+        
+        val curveOffset = amp1 * sin(worldY * 0.0016f) + amp2 * cos(worldY * 0.0041f)
+        return mid + curveOffset * blend
     }
 
     // Core Game Tick Thread
@@ -269,13 +286,15 @@ fun DriftCarGame(onBack: () -> Unit) {
                 val cw = size.width
                 val ch = size.height
 
-                // Auto initialize car horizontal center position if first frame
-                if (carX == 0f) {
+                // Auto initialize car horizontal center position if first frame, restart, or layout resize
+                if (cw > 100f && (cw != prevCw || !isCarInitialized || carX == 0f)) {
                     carX = cw / 2f
                     carY = ch * 0.72f
+                    prevCw = cw
+                    isCarInitialized = true
                 }
 
-                if (!isRunning && !gameOver) {
+                if (!isCarInitialized || (!isRunning && !gameOver)) {
                     return@Canvas
                 }
 
@@ -369,16 +388,16 @@ fun DriftCarGame(onBack: () -> Unit) {
                 }
 
                 // 2. COLLISION & BOUNDARIES EVALUATION (Calculated from actual canvas cw width)
-                val currentCarCenterRoad = getRoadCenterX(distanceTraveled, cw)
+                val currentCarCenterRoad = getRoadCenterX(distanceTraveled + (ch - carY), cw)
                 val distanceFromRoadCenter = kotlin.math.abs(carX - currentCarCenterRoad)
 
                 // Off-road Grass slowdown
-                val isOffRoad = distanceFromRoadCenter > (roadWidth / 2 - 10f)
-                if (isOffRoad && isRunning && !gameOver) {
+                val isOffRoad = distanceFromRoadCenter > (roadWidth / 2 - 12f)
+                if (isOffRoad && isRunning && !gameOver && isCarInitialized) {
                     // Screen shake visual effect!
                     // Decrease velocity
-                    vx *= 0.82f
-                    vy *= 0.82f
+                    vx *= 0.85f
+                    vy *= 0.85f
                     
                     // Spawn grass dirt particles
                     if (Random.nextInt(100) < 30) {
@@ -397,10 +416,12 @@ fun DriftCarGame(onBack: () -> Unit) {
                     }
 
                     // Fatal boundary Crash (hits concrete fence borders)
-                    if (distanceFromRoadCenter > (roadWidth / 2 + 60f)) {
+                    // Added a 600f traveled safety buffer so early frames/starts are completely safe
+                    if (distanceTraveled > 600f && distanceFromRoadCenter > (roadWidth / 2 + 75f)) {
                         gameOver = true
                         if (score > highscore) {
                             highscore = score
+                            onHighScoreUpdate(score)
                         }
                     }
                 }
@@ -777,6 +798,7 @@ fun DriftCarGame(onBack: () -> Unit) {
                         Button(
                             onClick = {
                                 // Trigger canvas re-centering values on restart
+                                isCarInitialized = false
                                 carX = 0f 
                                 isRunning = true
                                 gameOver = false

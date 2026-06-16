@@ -145,6 +145,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         prefs.edit().putBoolean("isSecretPhotoEnabled", enabled).apply()
     }
 
+    var isPanicLockEnabled by mutableStateOf(prefs.getBoolean("isPanicLockEnabled", true))
+
+    fun updatePanicLockEnabled(enabled: Boolean) {
+        isPanicLockEnabled = enabled
+        prefs.edit().putBoolean("isPanicLockEnabled", enabled).apply()
+    }
+
     fun saveMockGps(lat: Float, lng: Float, label: String, active: Boolean) {
         mockGpsLat = lat
         mockGpsLng = lng
@@ -160,6 +167,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     var currentSecretSection by mutableStateOf(SecretSection.GAMES)
     var activeGame by mutableStateOf(GameType.HOME)
+
+    // --- Player / Agent Identity ---
+    private var _playerAgentName = mutableStateOf(prefs.getString("playerAgentName", "") ?: "")
+    var playerAgentName: String
+        get() = _playerAgentName.value
+        set(value) {
+            _playerAgentName.value = value
+            prefs.edit().putString("playerAgentName", value).apply()
+        }
 
     // --- Calculator Inputs ---
     var calculatorInput by mutableStateOf("")
@@ -219,6 +235,46 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         set(value) {
             _memoryHighScore.value = value
             prefs.edit().putInt("memoryHighScore", value).apply()
+        }
+
+    private var _driftHighScore = mutableStateOf(prefs.getInt("driftHighScore", 0))
+    var driftHighScore: Int
+        get() = _driftHighScore.value
+        set(value) {
+            _driftHighScore.value = value
+            prefs.edit().putInt("driftHighScore", value).apply()
+        }
+
+    private var _crowdHighScore = mutableStateOf(prefs.getInt("crowdHighScore", 0))
+    var crowdHighScore: Int
+        get() = _crowdHighScore.value
+        set(value) {
+            _crowdHighScore.value = value
+            prefs.edit().putInt("crowdHighScore", value).apply()
+        }
+
+    private var _rhythmHighScore = mutableStateOf(prefs.getInt("rhythmHighScore", 0))
+    var rhythmHighScore: Int
+        get() = _rhythmHighScore.value
+        set(value) {
+            _rhythmHighScore.value = value
+            prefs.edit().putInt("rhythmHighScore", value).apply()
+        }
+
+    private var _spaceHighScore = mutableStateOf(prefs.getInt("spaceHighScore", 0))
+    var spaceHighScore: Int
+        get() = _spaceHighScore.value
+        set(value) {
+            _spaceHighScore.value = value
+            prefs.edit().putInt("spaceHighScore", value).apply()
+        }
+
+    private var _twoThousandFortyEightHighScore = mutableStateOf(prefs.getInt("twoThousandFortyEightHighScore", 0))
+    var twoThousandFortyEightHighScore: Int
+        get() = _twoThousandFortyEightHighScore.value
+        set(value) {
+            _twoThousandFortyEightHighScore.value = value
+            prefs.edit().putInt("twoThousandFortyEightHighScore", value).apply()
         }
 
     private var _coins = mutableStateOf(prefs.getInt("coins", 500))

@@ -32,7 +32,7 @@ import kotlin.random.Random
 
 // Game state variables
 data class SpaceStar(val id: Int, var x: Float, var y: Float, val speed: Float, val size: Float)
-data class PlayerLaser(var x: Float, var y: Float, val isDoublePart: Boolean = false)
+data class PlayerLaser(var x: Float, var y: Float, val isDoublePart: Boolean = false, val dx: Float =  0f)
 data class BossBullet(var x: Float, var y: Float, val dx: Float, val dy: Float)
 
 enum class EnemyType { FIGHTER, SWEEPER, HEAVY }
@@ -48,7 +48,7 @@ data class SpaceEnemy(
     val height: Float = 40f
 )
 
-enum class PowerUpType { SHIELD, DOUBLE_SHOT }
+enum class PowerUpType { SHIELD, DOUBLE_SHOT, TRIPLE_SHOT, HEAL }
 data class SpacePowerUp(val id: Int, val type: PowerUpType, var x: Float, var y: Float, val speed: Float = 3f)
 
 data class SpaceParticle(
@@ -64,11 +64,23 @@ data class SpaceParticle(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RetroSpaceShooterGame(onBack: () -> Unit) {
+fun RetroSpaceShooterGame(
+    highScore: Int,
+    onHighScoreUpdate: (Int) -> Unit,
+    onBack: () -> Unit
+) {
     var gameStarted by remember { mutableStateOf(false) }
     var gameOver by remember { mutableStateOf(false) }
     var gameWon by remember { mutableStateOf(false) }
     var score by remember { mutableStateOf(0) }
+    var highscore by remember(highScore) { mutableStateOf(highScore) }
+
+    LaunchedEffect(score) {
+        if (score > highscore) {
+            highscore = score
+            onHighScoreUpdate(score)
+        }
+    }
     var lives by remember { mutableStateOf(3) }
 
     // Space dimensions defined out of 100 for easy relative coordinates
@@ -86,6 +98,7 @@ fun RetroSpaceShooterGame(onBack: () -> Unit) {
     // Shields & weapons
     var hasShield by remember { mutableStateOf(false) }
     var doubleWeaponTimer by remember { mutableStateOf(0) } // frames left of double fire
+    var tripleWeaponTimer by remember { mutableStateOf(0) } // frames left of triple fire
 
     // Boss State
     var bossActive by remember { mutableStateOf(false) }
@@ -147,6 +160,7 @@ fun RetroSpaceShooterGame(onBack: () -> Unit) {
             bossBullets.clear()
             hasShield = false
             doubleWeaponTimer = 0
+            tripleWeaponTimer = 0
             bossActive = false
             bossHP = 100
             bossY = -20f
@@ -169,14 +183,21 @@ fun RetroSpaceShooterGame(onBack: () -> Unit) {
                 if (doubleWeaponTimer > 0) {
                     doubleWeaponTimer--
                 }
+                if (tripleWeaponTimer > 0) {
+                    tripleWeaponTimer--
+                }
 
                 // 3. Autoshot weapon interval (every 18 frames)
                 if (frameCount % 18 == 0) {
-                    if (doubleWeaponTimer > 0) {
-                        lasers.add(PlayerLaser(playerX - 6f, playerY - 3f, true))
-                        lasers.add(PlayerLaser(playerX + 6f, playerY - 3f, true))
+                    if (tripleWeaponTimer > 0) {
+                        lasers.add(PlayerLaser(playerX - 6f, playerY - 3f, true, -1.0f))
+                        lasers.add(PlayerLaser(playerX, playerY - 3f, false, 0f))
+                        lasers.add(PlayerLaser(playerX + 6f, playerY - 3f, true, 1.0f))
+                    } else if (doubleWeaponTimer > 0) {
+                        lasers.add(PlayerLaser(playerX - 6f, playerY - 3f, true, 0f))
+                        lasers.add(PlayerLaser(playerX + 6f, playerY - 3f, true, 0f))
                     } else {
-                        lasers.add(PlayerLaser(playerX, playerY - 3f, false))
+                        lasers.add(PlayerLaser(playerX, playerY - 3f, false, 0f))
                     }
                 }
 
@@ -184,8 +205,9 @@ fun RetroSpaceShooterGame(onBack: () -> Unit) {
                 val laserIter = lasers.iterator()
                 while (laserIter.hasNext()) {
                     val l = laserIter.next()
+                    l.x += l.dx
                     l.y -= 4f
-                    if (l.y < 0f) {
+                    if (l.y < 0f || l.x < 0f || l.x > 100f) {
                         laserIter.remove()
                     }
                 }
@@ -317,7 +339,17 @@ fun RetroSpaceShooterGame(onBack: () -> Unit) {
                         spawnExplosion(pu.x, pu.y, Color(0xFF00FFCC), 8)
                         when (pu.type) {
                             PowerUpType.SHIELD -> hasShield = true
-                            PowerUpType.DOUBLE_SHOT -> doubleWeaponTimer = 400 // ~7 seconds activity
+                            PowerUpType.DOUBLE_SHOT -> {
+                                doubleWeaponTimer = 400 // ~7 seconds activity
+                                tripleWeaponTimer = 0
+                            }
+                            PowerUpType.TRIPLE_SHOT -> {
+                                tripleWeaponTimer = 350 // ~6 seconds activity
+                                doubleWeaponTimer = 0
+                            }
+                            PowerUpType.HEAL -> {
+                                lives = (lives + 1).coerceAtMost(3)
+                            }
                         }
                         puIter.remove()
                     } else if (pu.y > 100f) {
@@ -367,9 +399,14 @@ fun RetroSpaceShooterGame(onBack: () -> Unit) {
                                 EnemyType.HEAVY -> 50
                             }
 
-                            // Spawn power-up opportunity (15% chance)
-                            if (Random.nextInt(100) < 18) {
-                                val pType = if (Random.nextBoolean()) PowerUpType.SHIELD else PowerUpType.DOUBLE_SHOT
+                            // Spawn power-up opportunity (22% chance)
+                            if (Random.nextInt(100) < 22) {
+                                val pType = when (Random.nextInt(4)) {
+                                    0 -> PowerUpType.SHIELD
+                                    1 -> PowerUpType.DOUBLE_SHOT
+                                    2 -> PowerUpType.TRIPLE_SHOT
+                                    else -> PowerUpType.HEAL
+                                }
                                 powerUps.add(SpacePowerUp(Random.nextInt(), pType, hitEnemy.x, hitEnemy.y))
                             }
                         } else {
@@ -449,6 +486,14 @@ fun RetroSpaceShooterGame(onBack: () -> Unit) {
                     fontFamily = FontFamily.Monospace,
                     letterSpacing = 2.sp
                 )
+                Text(
+                    "🏆 MEISTER REKORD: $highscore",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     "Bewege dein Raumschiff durch Schieben (Drag) des Fingers am Bildschirm. Schieße feindliche Schiffe ab und erledige den Boss!",
@@ -480,6 +525,18 @@ fun RetroSpaceShooterGame(onBack: () -> Unit) {
                             Box(modifier = Modifier.size(10.dp).background(Color(0xFFFF00CC), RoundedCornerShape(5.dp)))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Double-Shot - Feuert doppelte Frontal-Lasersphären", color = Color.White, fontSize = 11.sp)
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(10.dp).background(Color(0xFF3B82F6), RoundedCornerShape(5.dp)))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Triple-Shot - Feuert schräges 3-Wege Laser-Fächerfeuer", color = Color.White, fontSize = 11.sp)
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(10.dp).background(Color(0xFF10B981), RoundedCornerShape(5.dp)))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Heal-Core - Repariert die Hülle (+1 Reserve-Leben)", color = Color.White, fontSize = 11.sp)
                         }
                     }
                 }
@@ -536,7 +593,12 @@ fun RetroSpaceShooterGame(onBack: () -> Unit) {
                         val px = pu.x * scaleX
                         val py = pu.y * scaleY
                         
-                        val col = if (pu.type == PowerUpType.SHIELD) Color(0xFF00FFCC) else Color(0xFFFF00CC)
+                        val col = when (pu.type) {
+                            PowerUpType.SHIELD -> Color(0xFF00FFCC)
+                            PowerUpType.DOUBLE_SHOT -> Color(0xFFFF00CC)
+                            PowerUpType.TRIPLE_SHOT -> Color(0xFF3B82F6)
+                            PowerUpType.HEAL -> Color(0xFF10B981)
+                        }
                         // outer rotating hexagon / shield look
                         drawCircle(
                             color = col.copy(alpha = 0.4f),
@@ -548,6 +610,20 @@ fun RetroSpaceShooterGame(onBack: () -> Unit) {
                             radius = 12f,
                             center = Offset(px, py)
                         )
+                        
+                        // Inner icons
+                        when (pu.type) {
+                            PowerUpType.HEAL -> {
+                                drawLine(Color.White, start = Offset(px - 4f, py), end = Offset(px + 4f, py), strokeWidth = 2.5f)
+                                drawLine(Color.White, start = Offset(px, py - 4f), end = Offset(px, py + 4f), strokeWidth = 2.5f)
+                            }
+                            PowerUpType.TRIPLE_SHOT -> {
+                                drawCircle(Color.White, radius = 2f, center = Offset(px - 3.5f, py + 1.5f))
+                                drawCircle(Color.White, radius = 2f, center = Offset(px, py - 2.5f))
+                                drawCircle(Color.White, radius = 2f, center = Offset(px + 3.5f, py + 1.5f))
+                            }
+                            else -> {}
+                        }
                     }
 
                     // 3. Draw Player Weapons (lasers)
@@ -555,8 +631,9 @@ fun RetroSpaceShooterGame(onBack: () -> Unit) {
                         val lx = laser.x * scaleX
                         val ly = laser.y * scaleY
                         
+                        val lcol = if (tripleWeaponTimer > 0) Color(0xFF3B82F6) else if (laser.isDoublePart) Color(0xFFFF33CC) else Color(0xFF00FFCC)
                         drawRoundRect(
-                            color = if (laser.isDoublePart) Color(0xFFFF33CC) else Color(0xFF00FFCC),
+                            color = lcol,
                             topLeft = Offset(lx - 3f, ly - 15f),
                             size = Size(6f, 30f),
                             cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f)
@@ -763,7 +840,22 @@ fun RetroSpaceShooterGame(onBack: () -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        if (doubleWeaponTimer > 0) {
+                        if (tripleWeaponTimer > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFF3B82F6).copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                                    .border(1.dp, Color(0xFF3B82F6), RoundedCornerShape(12.dp))
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    "⚡ WEAPON LEVEL GOD: TRIPLE LASER (${tripleWeaponTimer / 60}s)",
+                                    color = Color(0xFF3B82F6),
+                                    fontSize = 11.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        } else if (doubleWeaponTimer > 0) {
                             Box(
                                 modifier = Modifier
                                     .background(Color(0xFFFF00CC).copy(alpha = 0.2f), RoundedCornerShape(12.dp))

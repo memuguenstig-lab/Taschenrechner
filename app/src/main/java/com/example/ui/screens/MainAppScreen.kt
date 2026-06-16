@@ -621,70 +621,68 @@ fun SecretArcadeDashboard(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
-            if (viewModel.currentSecretSection != SecretSection.GAMES || viewModel.activeGame == GameType.HOME) {
-                if (viewModel.currentSecretSection != SecretSection.GALLERY) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(bottom = 16.dp)
-                            .background(Color(0xFF0F0F11)),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        androidx.compose.material3.ScrollableTabRow(
-                            selectedTabIndex = pagerState.currentPage,
-                            containerColor = Color.Transparent,
-                            contentColor = Color.White,
-                            edgePadding = 8.dp,
-                            modifier = Modifier.weight(1f),
-                            indicator = { tabPositions ->
-                                if (pagerState.currentPage < tabPositions.size) {
-                                    androidx.compose.material3.TabRowDefaults.SecondaryIndicator(
-                                        modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                                        color = Color.White
-                                    )
-                                }
-                            }
-                        ) {
-                            pages.forEachIndexed { index, section ->
-                                val icon = when (section) {
-                                    SecretSection.GAMES -> Icons.Default.SportsEsports
-                                    SecretSection.CHAT -> Icons.Default.SmartToy
-                                    SecretSection.BROWSER -> Icons.Default.Public
-                                    SecretSection.WATCH -> Icons.Default.PlayCircle
-                                    SecretSection.SETTINGS -> Icons.Default.Settings
-                                    else -> Icons.Default.Circle
-                                }
-                                val label = when (section) {
-                                    SecretSection.GAMES -> "Spiele"
-                                    SecretSection.CHAT -> "KI"
-                                    SecretSection.BROWSER -> "Web"
-                                    SecretSection.WATCH -> "Watch"
-                                    SecretSection.SETTINGS -> "Settings"
-                                    else -> ""
-                                }
-                                androidx.compose.material3.Tab(
-                                    selected = pagerState.currentPage == index,
-                                    onClick = { viewModel.currentSecretSection = section },
-                                    icon = { Icon(icon, contentDescription = label) },
-                                    text = { Text(label, fontSize = 10.sp) },
-                                    selectedContentColor = Color.White,
-                                    unselectedContentColor = Color.White.copy(alpha = 0.4f)
+            if (viewModel.currentSecretSection != SecretSection.GALLERY) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(bottom = 16.dp)
+                        .background(Color.White),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    androidx.compose.material3.ScrollableTabRow(
+                        selectedTabIndex = pagerState.currentPage,
+                        containerColor = Color.Transparent,
+                        contentColor = Color(0xFF0F172A),
+                        edgePadding = 8.dp,
+                        modifier = Modifier.weight(1f),
+                        indicator = { tabPositions ->
+                            if (pagerState.currentPage < tabPositions.size) {
+                                androidx.compose.material3.TabRowDefaults.SecondaryIndicator(
+                                    modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                                    color = Color(0xFF10B981)
                                 )
                             }
                         }
-                        
-                        if (!viewModel.isSecureSecretUnlocked) {
-                            IconButton(
-                                onClick = { showSettingsDialog = true },
-                                modifier = Modifier.padding(end = 8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = "Einstellungen",
-                                    tint = Color.White.copy(alpha = 0.6f)
-                                )
+                    ) {
+                        pages.forEachIndexed { index, section ->
+                            val icon = when (section) {
+                                SecretSection.GAMES -> Icons.Default.SportsEsports
+                                SecretSection.CHAT -> Icons.Default.SmartToy
+                                SecretSection.BROWSER -> Icons.Default.Public
+                                SecretSection.WATCH -> Icons.Default.PlayCircle
+                                SecretSection.SETTINGS -> Icons.Default.Settings
+                                else -> Icons.Default.Circle
                             }
+                            val label = when (section) {
+                                SecretSection.GAMES -> "Spiele"
+                                SecretSection.CHAT -> "KI"
+                                SecretSection.BROWSER -> "Web"
+                                SecretSection.WATCH -> "Watch"
+                                SecretSection.SETTINGS -> "Settings"
+                                else -> ""
+                            }
+                            androidx.compose.material3.Tab(
+                                selected = pagerState.currentPage == index,
+                                onClick = { viewModel.currentSecretSection = section },
+                                icon = { Icon(icon, contentDescription = label) },
+                                text = { Text(label, fontSize = 10.sp) },
+                                selectedContentColor = Color(0xFF0F172A),
+                                unselectedContentColor = Color(0xFF0F172A).copy(alpha = 0.4f)
+                            )
+                        }
+                    }
+                    
+                    if (!viewModel.isSecureSecretUnlocked) {
+                        IconButton(
+                            onClick = { showSettingsDialog = true },
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Einstellungen",
+                                tint = Color(0xFF0F172A).copy(alpha = 0.6f)
+                            )
                         }
                     }
                 }
@@ -696,7 +694,7 @@ fun SecretArcadeDashboard(
                 viewModel.currentSecretSection == SecretSection.WATCH) {
                 FloatingActionButton(
                     onClick = { viewModel.isFullScreen = !viewModel.isFullScreen },
-                    containerColor = Color.White.copy(alpha = 0.15f),
+                    containerColor = Color(0xFF0F172A),
                     contentColor = Color.White,
                     modifier = Modifier.size(48.dp)
                 ) {
@@ -707,7 +705,7 @@ fun SecretArcadeDashboard(
                 }
             }
         },
-        containerColor = Color.Black
+        containerColor = Color(0xFFF1F5F9)
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -721,7 +719,8 @@ fun SecretArcadeDashboard(
                 androidx.compose.foundation.pager.HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
-                    userScrollEnabled = false // Horizontal swipe disabled
+                    userScrollEnabled = false,
+                    beyondViewportPageCount = pages.size
                 ) { page ->
                     when (pages[page]) {
                         SecretSection.GAMES -> GamesTabScreen(viewModel)
@@ -754,7 +753,7 @@ fun SecretSettingsTabScreen(viewModel: AppViewModel) {
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Geheime Einstellungen & Beweise", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Text("Geheime Einstellungen & Beweise", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
         Spacer(modifier = Modifier.height(24.dp))
         
         // Silent Photo Switch
@@ -766,8 +765,8 @@ fun SecretSettingsTabScreen(viewModel: AppViewModel) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                Text("Stiller Fotomodus & Screenshot", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Text("Macht jede Minute heimlich Foto (V/H) + Screenshot, wenn App offen.", fontSize = 12.sp, color = Color.White.copy(alpha = 0.5f))
+                Text("Stiller Fotomodus & Screenshot", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                Text("Macht jede Minute heimlich Foto (V/H) + Screenshot, wenn App offen.", fontSize = 12.sp, color = Color(0xFF64748B))
             }
             androidx.compose.material3.Switch(
                 checked = viewModel.isSecretPhotoEnabled,
@@ -778,6 +777,31 @@ fun SecretSettingsTabScreen(viewModel: AppViewModel) {
                 )
             )
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Panic Lock Switch
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                Text("Panik-Verriegelung (Face-Down/Schütteln)", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                Text("Schließt die geheime Ansicht sofort, sobald das Handy geschüttelt oder mit dem Bildschirm nach unten hingesetzt wird.", fontSize = 12.sp, color = Color(0xFF64748B))
+            }
+            androidx.compose.material3.Switch(
+                checked = viewModel.isPanicLockEnabled,
+                onCheckedChange = { viewModel.updatePanicLockEnabled(it) },
+                colors = androidx.compose.material3.SwitchDefaults.colors(
+                    checkedThumbColor = Color(0xFF10B981),
+                    checkedTrackColor = Color(0xFF10B981).copy(alpha = 0.5f)
+                ),
+                modifier = Modifier.testTag("panic_lock_switch")
+            )
+        }
         
         Spacer(modifier = Modifier.height(24.dp))
         
@@ -785,11 +809,12 @@ fun SecretSettingsTabScreen(viewModel: AppViewModel) {
         Button(
             onClick = { viewModel.activeGame = GameType.INTRUDER_PHOTOS },
             modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f))
+            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
         ) {
-            Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = Color.White)
+            Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = Color(0xFF0F172A))
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Beweisfotos anzeigen", fontSize = 16.sp, color = Color.White)
+            Text("Beweisfotos anzeigen", fontSize = 16.sp, color = Color(0xFF0F172A))
         }
     }
 }
@@ -797,8 +822,91 @@ fun SecretSettingsTabScreen(viewModel: AppViewModel) {
 @Composable
 fun GamesTabScreen(viewModel: AppViewModel) {
     var showUpdateDialogSecret by remember { mutableStateOf(false) }
+    var showNamePromptForGame by remember { mutableStateOf<GameType?>(null) }
+    var temporaryPlayerName by remember { mutableStateOf("") }
+
+    fun isActualPlayableGame(gameType: GameType): Boolean {
+        return when (gameType) {
+            GameType.HOME, GameType.MOCK_GPS, GameType.INTRUDER_PHOTOS, GameType.DISGUISE_SETTINGS, GameType.WIFI_SERVER -> false
+            else -> true
+        }
+    }
+
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    if (showNamePromptForGame != null) {
+        val targetGame = showNamePromptForGame!!
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showNamePromptForGame = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Security,
+                        contentDescription = "Identifizierung",
+                        tint = Color(0xFF0F172A),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "IDENTIFIKATION ERFORDERLICH",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color(0xFF0F172A)
+                    )
+                }
+            },
+            text = {
+                Column {
+                    Text(
+                        "Gib vor Spielstart deinen Spionage-Decknamen ein, um deinen Score und Ränge im Geheimbereich zu speichern.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF64748B),
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    androidx.compose.material3.OutlinedTextField(
+                        value = temporaryPlayerName,
+                        onValueChange = { temporaryPlayerName = it },
+                        label = { Text("Agenten-Deckname", fontSize = 11.sp) },
+                        placeholder = { Text("Agent James") },
+                        singleLine = true,
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A)
+                        ),
+                        modifier = Modifier.fillMaxWidth().testTag("agent_name_input")
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.Button(
+                    onClick = {
+                        if (temporaryPlayerName.isNotBlank()) {
+                            viewModel.playerAgentName = temporaryPlayerName.trim()
+                            viewModel.activeGame = targetGame
+                            showNamePromptForGame = null
+                        }
+                    },
+                    enabled = temporaryPlayerName.isNotBlank(),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.testTag("start_simulation_button")
+                ) {
+                    Text("BEITRETEN 🚀", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showNamePromptForGame = null }) {
+                    Text("Abbrechen", color = Color(0xFF64748B))
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 
     if (showUpdateDialogSecret) {
         Dialog(onDismissRequest = { showUpdateDialogSecret = false }) {
@@ -859,7 +967,14 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                 ticTacToeWins = viewModel.ticTacToeWins,
                 memoryHighScore = viewModel.memoryHighScore,
                 viewModel = viewModel,
-                onSelect = { viewModel.activeGame = it }
+                onSelect = { selectedGame ->
+                    if (isActualPlayableGame(selectedGame)) {
+                        showNamePromptForGame = selectedGame
+                        temporaryPlayerName = viewModel.playerAgentName
+                    } else {
+                        viewModel.activeGame = selectedGame
+                    }
+                }
             )
             GameType.SNAKE -> SnakeGame(
                 highScore = viewModel.snakeHighScore,
@@ -907,8 +1022,8 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                 onBack = { viewModel.activeGame = GameType.HOME }
             )
             GameType.TWO_THOUSAND_FORTY_EIGHT -> com.example.ui.games.TwoThousandFortyEightGame(
-                highScore = viewModel.memoryHighScore, // we can reuse memory or add new. Let's reuse memory for now to avoid adding new score, or just ignore highscore. Wait, wait, let's just pass memoryHighScore.
-                onHighScoreUpdate = { viewModel.memoryHighScore = it },
+                highScore = viewModel.twoThousandFortyEightHighScore,
+                onHighScoreUpdate = { viewModel.twoThousandFortyEightHighScore = it },
                 onBack = { viewModel.activeGame = GameType.HOME }
             )
             GameType.PONG -> com.example.ui.games.PongGame(
@@ -944,15 +1059,23 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                 onBack = { viewModel.activeGame = GameType.HOME }
             )
             GameType.DRIFT_CAR -> DriftCarGame(
+                highScore = viewModel.driftHighScore,
+                onHighScoreUpdate = { viewModel.driftHighScore = it },
                 onBack = { viewModel.activeGame = GameType.HOME }
             )
             GameType.CROWD_RUNNER -> CrowdRunnerGame(
+                highScore = viewModel.crowdHighScore,
+                onHighScoreUpdate = { viewModel.crowdHighScore = it },
                 onBack = { viewModel.activeGame = GameType.HOME }
             )
             GameType.RHYTHM_TAPPER -> RhythmTapperGame(
+                highScore = viewModel.rhythmHighScore,
+                onHighScoreUpdate = { viewModel.rhythmHighScore = it },
                 onBack = { viewModel.activeGame = GameType.HOME }
             )
             GameType.SPACE_SHOOTER -> RetroSpaceShooterGame(
+                highScore = viewModel.spaceHighScore,
+                onHighScoreUpdate = { viewModel.spaceHighScore = it },
                 onBack = { viewModel.activeGame = GameType.HOME }
             )
             GameType.WIFI_SERVER -> LocalWifiFileServer(
@@ -997,6 +1120,11 @@ fun GamesCatalogView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // --- SPIONAGE-DASHBOARD (HIGHSCORES & TROPHÄEN) ---
+        item {
+            SpionageDashboardView(viewModel = viewModel)
+        }
+
         // --- SECTION 1: SPIELESAMMLUNG (Games Collection) ---
         item {
             Row(
@@ -1016,7 +1144,7 @@ fun GamesCatalogView(
                     "🕹️ SPIELESAMMLUNG",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = Color(0xFF0F172A)
                 )
             }
         }
@@ -1135,7 +1263,7 @@ fun GamesCatalogView(
                     "🛡️ SPY & SECURITY CORNER",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = Color(0xFF0F172A)
                 )
             }
         }
@@ -1237,8 +1365,8 @@ fun GameCard(
             }
             .clickable { onClick() }
             .testTag("game_card_$title"),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(
@@ -1266,14 +1394,14 @@ fun GameCard(
                     text = title,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Black,
-                    color = Color.White,
+                    color = Color(0xFF0F172A),
                     textAlign = TextAlign.Center,
                     maxLines = 1
                 )
                 Text(
                     text = description,
                     fontSize = 9.sp,
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = Color(0xFF64748B),
                     textAlign = TextAlign.Center,
                     lineHeight = 11.sp,
                     maxLines = 2
@@ -1317,7 +1445,7 @@ fun ChatBotTabScreen(viewModel: AppViewModel) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF0F0F11))
+                    .background(Color.White)
                     .padding(12.dp)
             ) {
                 // Settings row inside bot bar: Mode toggle + Clear history buttons
@@ -1339,14 +1467,14 @@ fun ChatBotTabScreen(viewModel: AppViewModel) {
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color(0xFF10B981),
                                 checkedTrackColor = Color(0xFF10B981).copy(alpha = 0.3f),
-                                uncheckedThumbColor = Color.White.copy(alpha = 0.6f),
-                                uncheckedTrackColor = Color.White.copy(alpha = 0.2f)
+                                uncheckedThumbColor = Color(0xFF94A3B8),
+                                uncheckedTrackColor = Color(0xFFCBD5E1)
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (viewModel.isImageGenerationMode) "🎨 Bilderstellung Aktiv" else "💬 Chat-Modus Aktiv",
-                            color = Color.White,
+                            color = Color(0xFF0F172A),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -1374,17 +1502,17 @@ fun ChatBotTabScreen(viewModel: AppViewModel) {
                         placeholder = {
                             Text(
                                 if (viewModel.isImageGenerationMode) "Was möchtest du zeichnen lassen?..." else "Schreibe dem KI-Bot...",
-                                color = Color.White.copy(alpha = 0.5f)
+                                color = Color(0xFF64748B)
                             )
                         },
                         modifier = Modifier
                             .weight(1f)
                             .testTag("chat_input_field"),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedContainerColor = Color.White.copy(alpha = 0.05f),
-                            unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            focusedContainerColor = Color(0xFFF1F5F9),
+                            unfocusedContainerColor = Color(0xFFF1F5F9),
                             focusedBorderColor = Color(0xFF10B981),
                             unfocusedBorderColor = Color.Transparent
                         ),
@@ -1410,18 +1538,18 @@ fun ChatBotTabScreen(viewModel: AppViewModel) {
                         modifier = Modifier
                             .size(48.dp)
                             .background(
-                                color = if (viewModel.chatInputText.isNotBlank() && !viewModel.isBotResponding) Color(0xFF10B981) else Color.White.copy(alpha = 0.1f),
+                                color = if (viewModel.chatInputText.isNotBlank() && !viewModel.isBotResponding) Color(0xFF10B981) else Color(0xFFE2E8F0),
                                 shape = CircleShape
                             )
                             .testTag("chat_send_button")
                     ) {
                         if (viewModel.isBotResponding) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                            CircularProgressIndicator(color = Color(0xFF10B981), modifier = Modifier.size(24.dp))
                         } else {
                             Icon(
                                 Icons.AutoMirrored.Filled.Send,
                                 contentDescription = "Senden",
-                                tint = if (viewModel.chatInputText.isNotBlank() && !viewModel.isBotResponding) Color.White else Color.White.copy(alpha = 0.4f)
+                                tint = if (viewModel.chatInputText.isNotBlank() && !viewModel.isBotResponding) Color.White else Color(0xFF94A3B8)
                             )
                         }
                     }
@@ -1447,13 +1575,13 @@ fun ChatBotTabScreen(viewModel: AppViewModel) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             "Dein KI Chatbot ist bereit! \uD83E\uDD16",
-                            color = Color.White,
+                            color = Color(0xFF0F172A),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             "Tippe eine Nachricht oder wechsle unten auf \"Bilderstellung\", um fantastische digitale Kunst zu generieren und sogleich in deiner Galerie zu archivieren!",
-                            color = Color.White.copy(alpha = 0.6f),
+                            color = Color(0xFF64748B),
                             fontSize = 13.sp,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(top = 8.dp)
@@ -1495,8 +1623,8 @@ fun ChatBotTabScreen(viewModel: AppViewModel) {
 fun ChatBubble(message: ChatMessage) {
     val isUser = message.sender == "user"
     val align = if (isUser) Alignment.End else Alignment.Start
-    val bubbleColor = if (isUser) Color(0xFF10B981) else Color.White.copy(alpha = 0.1f)
-    val textColor = Color.White
+    val bubbleColor = if (isUser) Color(0xFF10B981) else Color.White
+    val textColor = if (isUser) Color.White else Color(0xFF0F172A)
     val cornerRadius = if (isUser) {
         RoundedCornerShape(16.dp, 16.dp, 2.dp, 16.dp)
     } else {
@@ -1510,7 +1638,7 @@ fun ChatBubble(message: ChatMessage) {
         Card(
             colors = CardDefaults.cardColors(containerColor = bubbleColor),
             shape = cornerRadius,
-            border = if (isUser) null else BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+            border = if (isUser) null else BorderStroke(1.dp, Color(0xFFE2E8F0)),
             modifier = Modifier.widthIn(max = 300.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
@@ -1531,7 +1659,7 @@ fun ChatBubble(message: ChatMessage) {
                             .fillMaxWidth()
                             .height(200.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White.copy(alpha = 0.1f)),
+                            .background(Color(0xFFF1F5F9)),
                         contentScale = ContentScale.Crop
                     )
                 }
@@ -1540,7 +1668,7 @@ fun ChatBubble(message: ChatMessage) {
         Text(
             text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(message.timestamp)),
             fontSize = 10.sp,
-            color = Color.White.copy(alpha = 0.4f),
+            color = Color(0xFF64748B),
             modifier = Modifier.padding(top = 2.dp, start = 4.dp, end = 4.dp)
         )
     }
@@ -2010,3 +2138,319 @@ fun AnimatedCalculatorText(
         )
     }
 }
+
+@Composable
+fun SpionageDashboardView(viewModel: AppViewModel) {
+    // Calculative Spy score
+    val snakeScorePts = viewModel.snakeHighScore * 10
+    val tetrisScorePts = viewModel.tetrisHighScore / 2
+    val flappyScorePts = viewModel.flappyBirdHighScore * 50
+    val dinoScorePts = viewModel.dinoHighScore * 2
+    val memoryHighScore = viewModel.memoryHighScore
+    val memoryScorePts = if (memoryHighScore > 0) (600 - memoryHighScore * 10).coerceAtLeast(0) else 0
+    val ticTacToeScorePts = viewModel.ticTacToeWins * 100
+    val driftScorePts = viewModel.driftHighScore * 2
+    val crowdScorePts = viewModel.crowdHighScore
+    val rhythmScorePts = viewModel.rhythmHighScore / 5
+    val spaceScorePts = viewModel.spaceHighScore / 5
+    val twoThousandFortyEightScorePts = viewModel.twoThousandFortyEightHighScore / 10
+
+    val totalPoints = snakeScorePts + tetrisScorePts + flappyScorePts + dinoScorePts +
+            memoryScorePts + ticTacToeScorePts + driftScorePts + crowdScorePts +
+            rhythmScorePts + spaceScorePts + twoThousandFortyEightScorePts
+
+    val (rank, rankDesc, nextRankThreshold, nextRankName) = when {
+        totalPoints < 100 -> Quadruple("Rekrut", "Spielfeld absichern, Ausrüstung testen und erste Einsätze fliegen.", 100, "Techniker")
+        totalPoints < 500 -> Quadruple("Techniker", "Errichten von abhörsicheren Datenleitungen und Spionage-Infrastruktur.", 500, "Schatten-Agent")
+        totalPoints < 1500 -> Quadruple("Schatten-Agent", "Leise Infiltration feindlicher Rechenleistungen unter dem Radar.", 1500, "Geheimdienst-Experte")
+        totalPoints < 3500 -> Quadruple("Geheimdienst-Experte", "Dechiffrierung hochkomplexer Datenströme und Steuerung verdeckter Ops.", 3500, "Doppelagent")
+        else -> Quadruple("Doppelagent", "Legende des Agency-Netzwerks. Meister der Täuschung, Verschlüsselung und des globalen Zugriffs.", totalPoints, "Maximaler Rang")
+    }
+
+    val progress = if (nextRankThreshold == totalPoints || nextRankThreshold == 0) 1.0f else (totalPoints.toFloat() / nextRankThreshold.toFloat()).coerceIn(0f, 1f)
+
+    var showAchievements by remember { mutableStateOf(false) }
+
+    // Achievements definitions
+    val achievements = listOf(
+        AchievementItem("🛡️ Erster Einsatz", "Eingeloggt als physischer Agent", viewModel.playerAgentName.isNotBlank()),
+        AchievementItem("🐍 Schlangenbeschwörer", "Erreiche 50+ Punkte in Snake", viewModel.snakeHighScore >= 50),
+        AchievementItem("🧱 Stapel-Meister", "Erreiche 1000+ Punkte in Tetris", viewModel.tetrisHighScore >= 1000),
+        AchievementItem("🐦 Flug-Akrobat", "Erreiche 20+ Punkte in Flappy Bird", viewModel.flappyBirdHighScore >= 20),
+        AchievementItem("🦖 Urzeit-Läufer", "Erreiche 300+ Punkte in Dino Jump", viewModel.dinoHighScore >= 300),
+        AchievementItem("🧠 Super-Gehirn", "Löse Memory Pairs in unter 25 Zügen", viewModel.memoryHighScore in 1..25),
+        AchievementItem("❌ TTT-Bezwinger", "Erreiche 10+ Siege in TicTacToe", viewModel.ticTacToeWins >= 10),
+        AchievementItem("🏎️ Drift-König", "Erreiche 200+ Punkte in Drift Car", viewModel.driftHighScore >= 200),
+        AchievementItem("👥 Crowd-Kommandant", "Erreiche 300+ Punkte in Crowd Runner", viewModel.crowdHighScore >= 300),
+        AchievementItem("🎵 Rhythmus-Gott", "Erreiche 3000+ Punkte in Beat Slam", viewModel.rhythmHighScore >= 3000),
+        AchievementItem("🚀 Galaxiewächter", "Erreiche 1000+ Punkte in Space Shooter", viewModel.spaceHighScore >= 1000),
+        AchievementItem("🔒 Sicherheits-Fanatiker", "Panik-Verriegelung dauerhaft aktiviert", viewModel.isPanicLockEnabled)
+    )
+
+    val unlockedCount = achievements.count { it.unlocked }
+
+    androidx.compose.material3.Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .testTag("agency_dashboard_card"),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, Color(0xFF1E293B))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Header Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "🛰️ AGENCY AGENTEN-DASHBOARD",
+                        color = Color(0xFF00FFCC),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        if (viewModel.playerAgentName.isNotBlank()) "AGENT: ${viewModel.playerAgentName.uppercase()}" else "PROFIL: ANONYM",
+                        color = Color.White,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFF1E293B), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        "$totalPoints OP-PTS",
+                        color = Color(0xFFFACC15),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            androidx.compose.material3.HorizontalDivider(color = Color(0xFF1E293B))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Rank Section
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Rank Emblem/Badge
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color(0xFF1E293B), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "Rank emblem",
+                        tint = when (rank) {
+                            "Rekrut" -> Color(0xFF94A3B8)
+                            "Techniker" -> Color(0xFF38BDF8)
+                            "Schatten-Agent" -> Color(0xFFA78BFA)
+                            "Geheimdienst-Experte" -> Color(0xFFF43F5E)
+                            else -> Color(0xFFF59E0B)
+                        },
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "SPIONAGE-RANG",
+                            color = Color(0xFF64748B),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            "$unlockedCount/12 TROPHÄEN",
+                            color = Color(0xFF10B981),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                    Text(
+                        rank.uppercase(),
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                rankDesc,
+                color = Color(0xFF94A3B8),
+                fontSize = 11.sp,
+                lineHeight = 15.sp,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Progress towards next rank
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "FORTSCHRITT: " + if (rank != "Doppelagent") "${(progress*100).toInt()}%" else "MAXIMALE RECHTE",
+                        color = Color(0xFF64748B),
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (rank != "Doppelagent") {
+                        Text(
+                            "NÄCHSTER RANG: $nextRankName ($nextRankThreshold PTS)",
+                            color = Color(0xFF64748B),
+                            fontSize = 9.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                androidx.compose.material3.LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp),
+                    color = Color(0xFF00FFCC),
+                    trackColor = Color(0xFF1E293B)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Toggle achievements button
+            androidx.compose.material3.Button(
+                onClick = { showAchievements = !showAchievements },
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
+                modifier = Modifier.fillMaxWidth().testTag("toggle_achievements_button"),
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(vertical = 8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = if (showAchievements) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = "Toggle achievements icon",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        if (showAchievements) "TROPHÄENSCHRANK SCHLIESSEN" else "TROPHÄEN & LEISTUNGEN EINSEHEN",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+            }
+
+            // Achievements details list
+            if (showAchievements) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF0B0F19), RoundedCornerShape(12.dp))
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "🏅 DEINE GEHEIMDIENST-LEISTUNGEN",
+                        color = Color(0xFF00FFCC),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+
+                    achievements.forEach { ach ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .background(
+                                        if (ach.unlocked) Color(0xFF065F46) else Color(0xFF1F2937),
+                                        androidx.compose.foundation.shape.CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (ach.unlocked) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Unlocked",
+                                        tint = Color(0xFF34D399),
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    ach.title,
+                                    color = if (ach.unlocked) Color.White else Color.Gray,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    ach.description,
+                                    color = if (ach.unlocked) Color(0xFF94A3B8) else Color(0xFF475569),
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Simple Quadruple data class
+data class Quadruple<out A, out B, out C, out D>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D
+)
+
+data class AchievementItem(
+    val title: String,
+    val description: String,
+    val unlocked: Boolean
+)

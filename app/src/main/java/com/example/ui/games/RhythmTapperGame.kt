@@ -56,45 +56,100 @@ data class Beatmap(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RhythmTapperGame(onBack: () -> Unit) {
+fun RhythmTapperGame(
+    highScore: Int,
+    onHighScoreUpdate: (Int) -> Unit,
+    onBack: () -> Unit
+) {
     val coroutineScope = rememberCoroutineScope()
     
-    // Selectable Beatmaps
+    // Selectable Beatmaps (Legendäre Hits!)
     val beatmaps = remember {
         listOf(
             Beatmap(
-                name = "ELECTRO DRIVE",
-                description = "Schneller Beat mit Elektro-Drops. (BPM: 120)",
-                bpm = 120,
-                notes = List(120) { index ->
-                    val time = 1000L + index * 500L + if (index % 5 == 0) 250L else 0L
+                name = "DARUDE - SANDSTORM",
+                description = "Der legendäre Techno-Trance-Smasher von 1999! Schnell, energiegeladen und unaufhaltsam. (BPM: 140)",
+                bpm = 140,
+                notes = List(200) { index ->
+                    val time = 1000L + index * 428L
                     val lane = when {
-                        index % 7 == 0 -> 3
+                        index % 12 == 0 -> 2
+                        index % 8 == 0 -> 3
                         index % 4 == 0 -> 1
-                        index % 3 == 0 -> 2
-                        else -> 0
+                        index % 3 == 0 -> 0
+                        else -> index % 4
                     }
                     time to lane
                 }
             ),
             Beatmap(
-                name = "TECHNO PUNCH",
-                description = "Aggressive Hardcore Bassline. (BPM: 140)",
-                bpm = 140,
-                notes = List(160) { index ->
-                    val time = 800L + index * 428L + if (index % 6 == 0) 214L else 0L
-                    val lane = (index * 3 + index % 4) % 4
+                name = "BEETHOVEN 5TH REMIX",
+                description = "Die berühmteste Sinfonie aller Zeiten im epischen Cyberpunk Future Bass-Gewand! (BPM: 125)",
+                bpm = 125,
+                notes = mutableListOf<Pair<Long, Int>>().apply {
+                    val beat = 480L
+                    var time = 1200L
+                    repeat(25) { cycle ->
+                        // "da-da-da-DAAA"
+                        add(time to 0)
+                        add(time + beat to 1)
+                        add(time + beat * 2 to 2)
+                        add(time + beat * 3 to 3) // gehaltene Note
+                        
+                        time += beat * 6
+                        
+                        // "da-da-da-DAAA"
+                        add(time to 2)
+                        add(time + beat to 1)
+                        add(time + beat * 2 to 0)
+                        add(time + beat * 3 to 3) // gehaltene Note
+
+                        time += beat * 8
+                    }
+                }
+            ),
+            Beatmap(
+                name = "BEE GEES - STAYIN' ALIVE",
+                description = "Kultiger 70s Disco-Klassiker! Fühle die funky Bassline und bleib im Groove. (BPM: 104)",
+                bpm = 104,
+                notes = List(110) { index ->
+                    val beat = 576L
+                    val time = 1200L + index * beat
+                    val lane = when (index % 8) {
+                        0, 2 -> 0
+                        4, 6 -> 3
+                        1, 5 -> 1
+                        3, 7 -> 2
+                        else -> 1
+                    }
                     time to lane
                 }
             ),
             Beatmap(
-                name = "MIDNIGHT SPY",
-                description = "Langsamer, geheimnisvoller Takt-Vibe. (BPM: 90)",
-                bpm = 90,
-                notes = List(80) { index ->
-                    val time = 1200L + index * 666L
-                    val lane = if (index % 2 == 0) (index % 4) else (3 - index % 4)
-                    time to lane
+                name = "DEEP PURPLE - SMOKE ON THE WATER",
+                description = "Das berühmteste Hard-Rock-Riff der Musikgeschichte! Klassischer, unvergesslicher Rhythmus. (BPM: 114)",
+                bpm = 114,
+                notes = mutableListOf<Pair<Long, Int>>().apply {
+                    val beat = 526L
+                    var time = 1500L
+                    repeat(20) { cycle ->
+                        add(time to 0)             // 0
+                        add(time + beat to 1)       // 3
+                        add(time + beat * 2 to 2)   // 5
+                        
+                        add(time + beat * 4 to 0)   // 0
+                        add(time + beat * 5 to 1)   // 3
+                        add(time + beat * 6 to 3)   // 6
+                        add(time + beat * 7 to 2)   // 5
+                        
+                        add(time + beat * 9 to 0)   // 0
+                        add(time + beat * 10 to 1)  // 3
+                        add(time + beat * 11 to 2)  // 5
+                        add(time + beat * 12 to 1)  // 3
+                        add(time + beat * 13 to 0)  // 0
+                        
+                        time += beat * 16
+                    }
                 }
             )
         )
@@ -104,6 +159,14 @@ fun RhythmTapperGame(onBack: () -> Unit) {
     val activeMap = beatmaps[selectedMapIndex]
 
     var score by remember { mutableStateOf(0) }
+    var highscore by remember(highScore) { mutableStateOf(highScore) }
+
+    LaunchedEffect(score) {
+        if (score > highscore) {
+            highscore = score
+            onHighScoreUpdate(score)
+        }
+    }
     var combo by remember { mutableStateOf(0) }
     var maxCombo by remember { mutableStateOf(0) }
     var gameStarted by remember { mutableStateOf(false) }
@@ -173,18 +236,73 @@ fun RhythmTapperGame(onBack: () -> Unit) {
         }
     }
 
-    // Play backing rhythm Synth loop
+    // Play backing rhythm Synth loop (Maßgeschneiderte bekannte Melodien/Riffs!)
     LaunchedEffect(gameStarted, selectedMapIndex, gameOver) {
         if (gameStarted && !gameOver) {
             isSynthRunning = true
             val beatInterval = (60000 / activeMap.bpm).toLong()
+            var step = 0
             while (isSynthRunning && !gameOver) {
-                // Backing metronome: alternating low beat thump and hi-hat chirp
-                playSynthSound(65.4, 120) // Deep Bass C2
-                delay(beatInterval / 2)
+                when (activeMap.name) {
+                    "DARUDE - SANDSTORM" -> {
+                        // High energetic lead synth motif
+                        val sandstormMelody = listOf(493.88, 493.88, 493.88, 493.88, 493.88, 440.0, 440.0, 440.0)
+                        val freq = sandstormMelody[step % sandstormMelody.size]
+                        playSynthSound(freq, 90)
+                        delay(beatInterval / 2)
+                        if (gameOver) break
+                        
+                        // Alternate kick beat sound
+                        val beatSound = if (step % 2 == 0) 90.0 else 900.0
+                        playSynthSound(beatSound, 30)
+                        delay(beatInterval / 2)
+                    }
+                    "BEETHOVEN 5TH REMIX" -> {
+                        val loopIndex = step % 8
+                        when (loopIndex) {
+                            0, 1, 2 -> {
+                                playSynthSound(392.0, 150) // G4
+                                delay(beatInterval)
+                            }
+                            3 -> {
+                                playSynthSound(311.13, 350) // Eb4 (held)
+                                delay(beatInterval * 2)
+                            }
+                            4, 5, 6 -> {
+                                playSynthSound(349.23, 150) // F4
+                                delay(beatInterval)
+                            }
+                            7 -> {
+                                playSynthSound(293.66, 350) // D4 (held)
+                                delay(beatInterval * 2)
+                            }
+                        }
+                    }
+                    "BEE GEES - STAYIN' ALIVE" -> {
+                        val stayinMelody = listOf(174.61, 130.81, 174.61, 174.61, 155.56, 174.61, 207.65, 174.61) // F-C-F-F-Eb-F-Ab-F funky bass
+                        val freq = stayinMelody[step % stayinMelody.size]
+                        playSynthSound(freq, 160)
+                        delay(beatInterval / 2)
+                        if (gameOver) break
+                        playSynthSound(700.0, 25) // disco hihat check
+                        delay(beatInterval / 2)
+                    }
+                    "DEEP PURPLE - SMOKE ON THE WATER" -> {
+                        val smokeRiff = listOf(196.0, 233.08, 261.63, 196.0, 233.08, 277.18, 261.63, 196.0, 233.08, 261.63, 233.08, 196.0)
+                        val freq = smokeRiff[step % smokeRiff.size]
+                        playSynthSound(freq, 220)
+                        delay(beatInterval)
+                    }
+                    else -> {
+                        playSynthSound(65.4, 120)
+                        delay(beatInterval / 2)
+                        if (gameOver) break
+                        playSynthSound(800.0, 30)
+                        delay(beatInterval / 2)
+                    }
+                }
+                step++
                 if (gameOver) break
-                playSynthSound(800.0, 30) // High chirp click
-                delay(beatInterval / 2)
             }
         } else {
             isSynthRunning = false
@@ -373,6 +491,15 @@ fun RhythmTapperGame(onBack: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
                     modifier = Modifier.align(Alignment.Start)
+                )
+
+                Text(
+                    "🏆 DEIN HIGHSCORE: $highscore",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.align(Alignment.Start).padding(top = 4.dp, bottom = 4.dp)
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
