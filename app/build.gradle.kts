@@ -47,26 +47,6 @@ android {
           println("LOGGER: Could not decode debug.keystore.base64 dynamically: ${e.message}")
         }
       }
-      if (!keystoreFile.exists()) {
-        try {
-          println("LOGGER: debug.keystore is missing. Generating a fallback key dynamically using keytool...")
-          val pb = ProcessBuilder(
-            "keytool", "-genkeypair",
-            "-v",
-            "-keystore", keystoreFile.absolutePath,
-            "-alias", "androiddebugkey",
-            "-keyalg", "RSA",
-            "-keysize", "2048",
-            "-validity", "10000",
-            "-storepass", "android",
-            "-keypass", "android",
-            "-dname", "CN=Android Debug,O=Android,C=US"
-          )
-          pb.start().waitFor()
-        } catch (e: Exception) {
-          println("LOGGER: Could not generate fallback debug.keystore: ${e.message}")
-        }
-      }
       storeFile = keystoreFile
       storePassword = "android"
       keyAlias = "androiddebugkey"
