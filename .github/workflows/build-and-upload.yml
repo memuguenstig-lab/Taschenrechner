@@ -1,7 +1,10 @@
-name: Android Build & Upload to Supabase
+name: Android Build
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
   workflow_dispatch:
@@ -13,6 +16,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Decode Keystore
+        run: |
+          if [ -f debug.keystore.base64 ]; then
+            echo "Decoding debug.keystore.base64..."
+            tr -d '\n\r ' < debug.keystore.base64 | base64 -d > debug.keystore
+          else
+            echo "Warning: debug.keystore.base64 not found!"
+          fi
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -32,55 +44,9 @@ jobs:
           echo "Built APK files:"
           find app/build/outputs/apk/ -name "*.apk"
 
-      - name: Upload APK to Supabase Storage
-        env:
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SUPABASE_BUCKET_NAME: ${{ secrets.SUPABASE_BUCKET_NAME }}
-        run: |
-          APK_PATH=$(find app/build/outputs/apk/debug/ -name "*.apk" | head -n 1)
-          if [ -z "$APK_PATH" ]; then
-            echo "Error: No APK file found!"
-            exit 1
-          fi
-          echo "Found APK at: $APK_PATH"
-          
-          # Upload via Supabase Storage REST API
-          # We use standard upsert (x-upsert: true) to overwrite past version APKs
-          curl -X POST \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Content-Type: application/vnd.android.package-archive" \
-            -H "x-upsert: true" \
-            --data-binary "@$APK_PATH" \
-            "https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1/object/public/$SUPABASE_BUCKET_NAME/app-debug.apk"
-            
-          echo "APK successfully uploaded to Supabase Storage!"
+      - name: Upload APK as GitHub Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
 
-      - name: Create and Upload version.json Update Information
-        env:
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SUPABASE_BUCKET_NAME: ${{ secrets.SUPABASE_BUCKET_NAME }}
-        run: |
-          VERSION_CODE=${{ github.run_number }}
-          VERSION_NAME="1.0.${{ github.run_number }}"
-          
-          # Write json
-          cat <<EOF > version.json
-          {
-            "versionCode": $VERSION_CODE,
-            "versionName": "$VERSION_NAME",
-            "apkUrl": "https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1/object/public/$SUPABASE_BUCKET_NAME/app-debug.apk",
-            "changelog": "Build #${{ github.run_number }}: New automated release from GitHub push!"
-          }
-          EOF
-          
-          # Upload version.json
-          curl -X POST \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Content-Type: application/json" \
-            -H "x-upsert: true" \
-            --data-binary "@version.json" \
-            "https://$SUPABASE_PROJECT_REF.supabase.co/storage/v1/object/public/$SUPABASE_BUCKET_NAME/version.json"
-            
-          echo "version.json successfully uploaded to Supabase Storage!"

@@ -51,7 +51,7 @@ fun BrowserTabScreen(viewModel: AppViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F5F9))
+            .background(Color(0xFF15171C))
     ) {
 
         // Address bar
@@ -72,16 +72,16 @@ fun BrowserTabScreen(viewModel: AppViewModel) {
                 }, 
                 enabled = loadUrl != "app://search"
             ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color(0xFF475569))
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color(0xFF00FFCC))
             }
             IconButton(onClick = { webView?.goForward() }, enabled = (loadUrl != "app://search" && webView?.canGoForward() == true)) {
-                Icon(Icons.Default.ArrowForward, contentDescription = "Forward", tint = Color(0xFF475569))
+                Icon(Icons.Default.ArrowForward, contentDescription = "Forward", tint = Color(0xFF00FFCC))
             }
             IconButton(onClick = { 
                 loadUrl = "app://search"
                 urlInput = "app://search"
             }) {
-                Icon(Icons.Default.Home, contentDescription = "Home", tint = Color(0xFF475569))
+                Icon(Icons.Default.Home, contentDescription = "Home", tint = Color(0xFF00FFCC))
             }
 
             OutlinedTextField(
@@ -97,7 +97,7 @@ fun BrowserTabScreen(viewModel: AppViewModel) {
                 modifier = Modifier
                     .weight(1f)
                     .height(50.dp),
-                placeholder = { Text("Search or type URL", color = Color(0xFF64748B), fontSize = 14.sp) },
+                placeholder = { Text("Search or type URL", color = Color(0xFF94A3B8), fontSize = 14.sp) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
                 keyboardActions = KeyboardActions(onGo = {
@@ -116,12 +116,12 @@ fun BrowserTabScreen(viewModel: AppViewModel) {
                     }
                 }),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedBorderColor = Color(0xFF3B82F6),
-                    unfocusedBorderColor = Color(0xFFCBD5E1),
-                    focusedTextColor = Color(0xFF0F172A),
-                    unfocusedTextColor = Color(0xFF0F172A)
+                    focusedContainerColor = Color(0xFF1F2937),
+                    unfocusedContainerColor = Color(0xFF1F2937),
+                    focusedBorderColor = Color(0xFF00FFCC),
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
                 ),
                 shape = RoundedCornerShape(25.dp)
             )
@@ -133,7 +133,7 @@ fun BrowserTabScreen(viewModel: AppViewModel) {
                     webView?.reload() 
                 }
             }) {
-                Icon(Icons.Default.Refresh, contentDescription = "Reload", tint = Color(0xFF475569))
+                Icon(Icons.Default.Refresh, contentDescription = "Reload", tint = Color(0xFF00FFCC))
             }
         }
 
@@ -235,7 +235,7 @@ fun CustomSearchStartpage(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F5F9))
+            .background(Color(0xFF15171C))
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -243,13 +243,13 @@ fun CustomSearchStartpage(
         Box(
             modifier = Modifier
                 .size(72.dp)
-                .background(Color(0xFF3B82F6).copy(alpha = 0.15f), CircleShape),
+                .background(Color(0xFF00FFCC).copy(alpha = 0.15f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Public,
                 contentDescription = "Search Logo",
-                tint = Color(0xFF3B82F6),
+                tint = Color(0xFF00FFCC),
                 modifier = Modifier.size(40.dp)
             )
         }
@@ -260,13 +260,13 @@ fun CustomSearchStartpage(
             text = "Incognito Search",
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF0F172A)
+            color = Color.White
         )
         
         Text(
             text = "Sicheres & privates Surfen ohne Datenspeicherung",
             fontSize = 11.sp,
-            color = Color(0xFF64748B),
+            color = Color(0xFF94A3B8),
             modifier = Modifier.padding(top = 4.dp, bottom = 28.dp)
         )
         
@@ -283,12 +283,12 @@ fun CustomSearchStartpage(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            placeholder = { Text("Webadresse eingeben oder suchen...", color = Color(0xFF64748B), fontSize = 14.sp) },
+            placeholder = { Text("Webadresse eingeben oder suchen...", color = Color(0xFF94A3B8), fontSize = 14.sp) },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Search Icon",
-                    tint = Color(0xFF475569)
+                    tint = Color(0xFF94A3B8)
                 )
             },
             trailingIcon = {
@@ -300,7 +300,7 @@ fun CustomSearchStartpage(
                         Icon(
                             imageVector = Icons.Default.Clear,
                             contentDescription = "Clear",
-                            tint = Color(0xFF475569)
+                            tint = Color(0xFF94A3B8)
                         )
                     }
                 }
@@ -312,12 +312,12 @@ fun CustomSearchStartpage(
                 onSearch(searchText)
             }),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                focusedBorderColor = Color(0xFF3B82F6),
-                unfocusedBorderColor = Color(0xFFCBD5E1),
-                focusedTextColor = Color(0xFF0F172A),
-                unfocusedTextColor = Color(0xFF0F172A)
+                focusedContainerColor = Color(0xFF1F2937),
+                unfocusedContainerColor = Color(0xFF1F2937),
+                focusedBorderColor = Color(0xFF00FFCC),
+                unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White
             ),
             shape = RoundedCornerShape(28.dp)
         )
@@ -333,18 +333,18 @@ fun CustomSearchStartpage(
                     focusManager.clearFocus()
                     onSearch(searchText)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFCC), contentColor = Color(0xFF15171C)),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.padding(end = 8.dp)
             ) {
-                Text("Los geht's", fontWeight = FontWeight.Bold, color = Color.White)
+                Text("Los geht's", fontWeight = FontWeight.Bold)
             }
             
             Button(
                 onClick = {
                     viewModel.showBrowserHistorySecretView = true
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF64748B)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF374151), contentColor = Color.White),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Text("Verlauf", color = Color.White)
@@ -357,7 +357,7 @@ fun CustomSearchStartpage(
             text = "Beliebte Seiten",
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF64748B),
+            color = Color(0xFF94A3B8),
             modifier = Modifier.align(Alignment.Start).padding(bottom = 12.dp)
         )
         
@@ -388,17 +388,17 @@ fun QuickDialItem(name: String, icon: androidx.compose.ui.graphics.vector.ImageV
             .clickable(onClick = onClick)
             .width(72.dp)
             .padding(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937)),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
             modifier = Modifier.padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(imageVector = icon, contentDescription = name, tint = Color(0xFF475569), modifier = Modifier.size(20.dp))
+            Icon(imageVector = icon, contentDescription = name, tint = Color(0xFF00FFCC), modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.height(4.dp))
-            Text(name, fontSize = 10.sp, color = Color(0xFF0F172A), maxLines = 1)
+            Text(name, fontSize = 10.sp, color = Color.White, maxLines = 1)
         }
     }
 }
@@ -522,10 +522,10 @@ fun BrowserHistoryScreen(viewModel: AppViewModel, onBack: () -> Unit) {
         topBar = {
             @OptIn(ExperimentalMaterial3Api::class)
             TopAppBar(
-                title = { Text("Verlauf / Keylogger", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                title = { Text("Verlauf / Keylogger", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color(0xFF0F172A))
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 actions = {
@@ -533,14 +533,14 @@ fun BrowserHistoryScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         Icon(Icons.Default.Delete, contentDescription = "Clear History", tint = Color.Red)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF1F5F9))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1F2937))
             )
         }
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF1F5F9))
+                .background(Color(0xFF15171C))
                 .padding(padding)
         ) {
             if (history.isEmpty()) {
@@ -552,11 +552,11 @@ fun BrowserHistoryScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     Icon(
                         imageVector = Icons.Default.History,
                         contentDescription = "No History",
-                        tint = Color(0xFF64748B),
+                        tint = Color(0xFF94A3B8),
                         modifier = Modifier.size(64.dp)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Keine Einträge vorhanden", color = Color(0xFF475569), fontSize = 16.sp)
+                    Text("Keine Einträge vorhanden", color = Color(0xFF94A3B8), fontSize = 16.sp)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Tipper im Safe-Web-Browser werden hier live geloggt.", color = Color(0xFF64748B), fontSize = 12.sp)
                 }
@@ -570,8 +570,8 @@ fun BrowserHistoryScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937)),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Row(
@@ -598,7 +598,7 @@ fun BrowserHistoryScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = entry.text,
-                                        color = Color(0xFF0F172A),
+                                        color = Color.White,
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.SemiBold
                                     )
@@ -609,14 +609,14 @@ fun BrowserHistoryScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             "Gelöscht" -> "Eingabe gelöscht"
                                             else -> "Eingabe/Tastendruck"
                                         },
-                                        color = Color(0xFF64748B),
+                                        color = Color(0xFF94A3B8),
                                         fontSize = 11.sp
                                     )
                                 }
                                 
                                 Text(
                                     text = dateFormat.format(java.util.Date(entry.timestamp)),
-                                    color = Color(0xFF64748B),
+                                    color = Color(0xFF94A3B8),
                                     fontSize = 11.sp
                                 )
                             }

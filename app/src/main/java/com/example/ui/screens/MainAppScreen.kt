@@ -772,7 +772,7 @@ fun SecretSettingsTabScreen(viewModel: AppViewModel) {
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Geheime Einstellungen & Beweise", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+        Text("Geheime Einstellungen & Beweise", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
         Spacer(modifier = Modifier.height(24.dp))
         
         // Silent Photo Switch
@@ -784,8 +784,8 @@ fun SecretSettingsTabScreen(viewModel: AppViewModel) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                Text("Stiller Fotomodus & Screenshot", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                Text("Macht jede Minute heimlich Foto (V/H) + Screenshot, wenn App offen.", fontSize = 12.sp, color = Color(0xFF64748B))
+                Text("Stiller Fotomodus & Screenshot", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("Macht jede Minute heimlich Foto (V/H) + Screenshot, wenn App offen.", fontSize = 12.sp, color = Color(0xFF94A3B8))
             }
             androidx.compose.material3.Switch(
                 checked = viewModel.isSecretPhotoEnabled,
@@ -808,8 +808,8 @@ fun SecretSettingsTabScreen(viewModel: AppViewModel) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                Text("Panik-Verriegelung (Face-Down/Schütteln)", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                Text("Schließt die geheime Ansicht sofort, sobald das Handy geschüttelt oder mit dem Bildschirm nach unten hingesetzt wird.", fontSize = 12.sp, color = Color(0xFF64748B))
+                Text("Panik-Verriegelung (Face-Down/Schütteln)", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("Schließt die geheime Ansicht sofort, sobald das Handy geschüttelt oder mit dem Bildschirm nach unten hingesetzt wird.", fontSize = 12.sp, color = Color(0xFF94A3B8))
             }
             androidx.compose.material3.Switch(
                 checked = viewModel.isPanicLockEnabled,
@@ -828,12 +828,12 @@ fun SecretSettingsTabScreen(viewModel: AppViewModel) {
         Button(
             onClick = { viewModel.activeGame = GameType.INTRUDER_PHOTOS },
             modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1F2937)),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
         ) {
-            Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = Color(0xFF0F172A))
+            Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = Color(0xFF00FFCC))
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Beweisfotos anzeigen", fontSize = 16.sp, color = Color(0xFF0F172A))
+            Text("Beweisfotos anzeigen", fontSize = 16.sp, color = Color.White)
         }
     }
 }
@@ -1463,7 +1463,7 @@ fun ChatBotTabScreen(viewModel: AppViewModel) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White)
+                    .background(Color(0xFF1F2937))
                     .padding(12.dp)
             ) {
                 // Settings row inside bot bar: Mode toggle + Clear history buttons
@@ -1492,7 +1492,7 @@ fun ChatBotTabScreen(viewModel: AppViewModel) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (viewModel.isImageGenerationMode) "🎨 Bilderstellung Aktiv" else "💬 Chat-Modus Aktiv",
-                            color = Color(0xFF0F172A),
+                            color = Color.White,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -1520,17 +1520,17 @@ fun ChatBotTabScreen(viewModel: AppViewModel) {
                         placeholder = {
                             Text(
                                 if (viewModel.isImageGenerationMode) "Was möchtest du zeichnen lassen?..." else "Schreibe dem KI-Bot...",
-                                color = Color(0xFF64748B)
+                                color = Color(0xFF94A3B8)
                             )
                         },
                         modifier = Modifier
                             .weight(1f)
                             .testTag("chat_input_field"),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF0F172A),
-                            unfocusedTextColor = Color(0xFF0F172A),
-                            focusedContainerColor = Color(0xFFF1F5F9),
-                            unfocusedContainerColor = Color(0xFFF1F5F9),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedContainerColor = Color(0xFF111827),
+                            unfocusedContainerColor = Color(0xFF111827),
                             focusedBorderColor = Color(0xFF10B981),
                             unfocusedBorderColor = Color.Transparent
                         ),
@@ -1556,7 +1556,7 @@ fun ChatBotTabScreen(viewModel: AppViewModel) {
                         modifier = Modifier
                             .size(48.dp)
                             .background(
-                                color = if (viewModel.chatInputText.isNotBlank() && !viewModel.isBotResponding) Color(0xFF10B981) else Color(0xFFE2E8F0),
+                                color = if (viewModel.chatInputText.isNotBlank() && !viewModel.isBotResponding) Color(0xFF10B981) else Color(0xFF3F3F46),
                                 shape = CircleShape
                             )
                             .testTag("chat_send_button")
@@ -1593,7 +1593,7 @@ fun ChatBotTabScreen(viewModel: AppViewModel) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             "Dein KI Chatbot ist bereit! \uD83E\uDD16",
-                            color = Color(0xFF0F172A),
+                            color = Color.White,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -1641,8 +1641,8 @@ fun ChatBotTabScreen(viewModel: AppViewModel) {
 fun ChatBubble(message: ChatMessage) {
     val isUser = message.sender == "user"
     val align = if (isUser) Alignment.End else Alignment.Start
-    val bubbleColor = if (isUser) Color(0xFF10B981) else Color.White
-    val textColor = if (isUser) Color.White else Color(0xFF0F172A)
+    val bubbleColor = if (isUser) Color(0xFF10B981) else Color(0xFF1F2937)
+    val textColor = Color.White
     val cornerRadius = if (isUser) {
         RoundedCornerShape(16.dp, 16.dp, 2.dp, 16.dp)
     } else {
@@ -1656,7 +1656,7 @@ fun ChatBubble(message: ChatMessage) {
         Card(
             colors = CardDefaults.cardColors(containerColor = bubbleColor),
             shape = cornerRadius,
-            border = if (isUser) null else BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            border = if (isUser) null else BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
             modifier = Modifier.widthIn(max = 300.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
@@ -1677,7 +1677,7 @@ fun ChatBubble(message: ChatMessage) {
                             .fillMaxWidth()
                             .height(200.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFF1F5F9)),
+                            .background(Color(0xFF111827)),
                         contentScale = ContentScale.Crop
                     )
                 }
