@@ -843,6 +843,20 @@ fun GamesTabScreen(viewModel: AppViewModel) {
     var showUpdateDialogSecret by remember { mutableStateOf(false) }
     var showNamePromptForGame by remember { mutableStateOf<GameType?>(null) }
     var temporaryPlayerName by remember { mutableStateOf("") }
+    var isCurrentGameDuo by remember { mutableStateOf(false) }
+    var selectDuoInPrompt by remember { mutableStateOf(false) }
+
+    LaunchedEffect(viewModel.activeGame) {
+        if (viewModel.activeGame == GameType.HOME) {
+            isCurrentGameDuo = false
+        }
+    }
+
+    LaunchedEffect(showNamePromptForGame) {
+        if (showNamePromptForGame != null) {
+            selectDuoInPrompt = false
+        }
+    }
 
     fun isActualPlayableGame(gameType: GameType): Boolean {
         return when (gameType) {
@@ -900,6 +914,86 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                         ),
                         modifier = Modifier.fillMaxWidth().testTag("agent_name_input")
                     )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "SPIELMODUS WÄHLEN:",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color(0xFF00FFCC)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Solo Selection Card
+                        androidx.compose.material3.Card(
+                            onClick = { selectDuoInPrompt = false },
+                            colors = androidx.compose.material3.CardDefaults.cardColors(
+                                containerColor = if (!selectDuoInPrompt) Color(0xFF0D9488) else Color(0xFF1E2937)
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(
+                                width = 1.dp,
+                                color = if (!selectDuoInPrompt) Color(0xFF00FFCC) else Color.White.copy(alpha = 0.1f)
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("👤", fontSize = 24.sp)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "Solo-Modus",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    "Normales Spiel",
+                                    fontSize = 9.sp,
+                                    color = Color.White.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+
+                        // Duo Selection Card
+                        androidx.compose.material3.Card(
+                            onClick = { selectDuoInPrompt = true },
+                            colors = androidx.compose.material3.CardDefaults.cardColors(
+                                containerColor = if (selectDuoInPrompt) Color(0xFFD946EF) else Color(0xFF1E2937)
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(
+                                width = 1.dp,
+                                color = if (selectDuoInPrompt) Color(0xFFF472B6) else Color.White.copy(alpha = 0.1f)
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("👥", fontSize = 24.sp)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "Duo-Duell",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    "Geteilter Screen",
+                                    fontSize = 9.sp,
+                                    color = Color.White.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -907,6 +1001,7 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                     onClick = {
                         if (temporaryPlayerName.isNotBlank()) {
                             viewModel.playerAgentName = temporaryPlayerName.trim()
+                            isCurrentGameDuo = selectDuoInPrompt
                             viewModel.activeGame = targetGame
                             showNamePromptForGame = null
                         }
@@ -979,133 +1074,143 @@ fun GamesTabScreen(viewModel: AppViewModel) {
             label = "games_navigation",
             modifier = Modifier.fillMaxSize()
         ) { game ->
-            when (game) {
-            GameType.HOME -> GamesCatalogView(
-                snakeHighScore = viewModel.snakeHighScore,
-                tetrisHighScore = viewModel.tetrisHighScore,
-                flappyBirdHighScore = viewModel.flappyBirdHighScore,
-                dinoHighScore = viewModel.dinoHighScore,
-                ticTacToeWins = viewModel.ticTacToeWins,
-                memoryHighScore = viewModel.memoryHighScore,
-                viewModel = viewModel,
-                onSelect = { selectedGame ->
-                    if (isActualPlayableGame(selectedGame)) {
-                        showNamePromptForGame = selectedGame
-                        temporaryPlayerName = viewModel.playerAgentName
-                    } else {
-                        viewModel.activeGame = selectedGame
+            if (isCurrentGameDuo && isActualPlayableGame(game) && 
+                game != GameType.COOP_SPLIT_SCREEN && 
+                game != GameType.COOP_SPLIT_TUG_OF_WAR && 
+                game != GameType.COOP_SPLIT_REACTION) {
+                
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF0F1016))
+                ) {
+                    // --- SPIELER 2 (TOP half, ROTATED 180 DEGREES) ---
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .graphicsLayer(rotationZ = 180f)
+                            .background(Brush.verticalGradient(listOf(Color(0xFF2D0B2E), Color(0xFF21000B))))
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize().padding(4.dp)) {
+                            RenderGameComponent(game, viewModel) { viewModel.activeGame = GameType.HOME }
+                        }
+                        // Duo Player badge
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(8.dp)
+                                .background(Color(0xFFFF007F).copy(alpha = 0.85f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("SPIELER 2 (O)", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // --- THE SPLIT DIVIDER ---
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFF3B82F6), Color(0xFFFF007F))
+                                )
+                            )
+                    )
+
+                    // --- SPIELER 1 (BOTTOM half, NORMAL ORIENTATION) ---
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .background(Brush.verticalGradient(listOf(Color(0xFF0F2027), Color(0xFF13222F))))
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize().padding(4.dp)) {
+                            RenderGameComponent(game, viewModel) { viewModel.activeGame = GameType.HOME }
+                        }
+                        // Duo Player badge
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(8.dp)
+                                .background(Color(0xFF3B82F6).copy(alpha = 0.85f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("SPIELER 1 (X)", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
-            )
-            GameType.SNAKE -> SnakeGame(
-                highScore = viewModel.snakeHighScore,
-                onHighScoreUpdate = { viewModel.snakeHighScore = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.TETRIS -> TetrisGame(
-                highScore = viewModel.tetrisHighScore,
-                onHighScoreUpdate = { viewModel.tetrisHighScore = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.FLAPPYBIRD -> FlappyBirdGame(
-                highScore = viewModel.flappyBirdHighScore,
-                onHighScoreUpdate = { viewModel.flappyBirdHighScore = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.TICTACTOE -> TicTacToeGame(
-                wins = viewModel.ticTacToeWins,
-                onWinUpdate = { viewModel.ticTacToeWins = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.MEMORY -> MemoryGame(
-                highScore = viewModel.memoryHighScore,
-                onHighScoreUpdate = { viewModel.memoryHighScore = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.SLOTS -> SlotMachineGame(
-                coins = viewModel.coins,
-                onCoinsUpdate = { viewModel.coins = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.BLACKJACK -> com.example.ui.games.BlackjackGame(
-                coins = viewModel.coins,
-                onCoinsUpdate = { viewModel.coins = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.MINES -> com.example.ui.games.MinesGame(
-                coins = viewModel.coins,
-                onCoinsUpdate = { viewModel.coins = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.DINO -> com.example.ui.games.DinoGame(
-                highScore = viewModel.dinoHighScore,
-                onHighScoreUpdate = { viewModel.dinoHighScore = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.TWO_THOUSAND_FORTY_EIGHT -> com.example.ui.games.TwoThousandFortyEightGame(
-                highScore = viewModel.twoThousandFortyEightHighScore,
-                onHighScoreUpdate = { viewModel.twoThousandFortyEightHighScore = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.PONG -> com.example.ui.games.PongGame(
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.DOTS_AND_BOXES -> com.example.ui.games.DotsAndBoxesGame(
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.MOCK_GPS -> MockGpsScreen(
-                viewModel = viewModel,
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.INTRUDER_PHOTOS -> IntruderPhotosScreen(
-                viewModel = viewModel,
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.DISGUISE_SETTINGS -> {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    ThemeSettingsDialog(
+            } else {
+                when (game) {
+                    GameType.HOME -> GamesCatalogView(
+                        snakeHighScore = viewModel.snakeHighScore,
+                        tetrisHighScore = viewModel.tetrisHighScore,
+                        flappyBirdHighScore = viewModel.flappyBirdHighScore,
+                        dinoHighScore = viewModel.dinoHighScore,
+                        ticTacToeWins = viewModel.ticTacToeWins,
+                        memoryHighScore = viewModel.memoryHighScore,
                         viewModel = viewModel,
-                        onDismiss = { viewModel.activeGame = GameType.HOME },
-                        onTriggerUpdate = { showUpdateDialogSecret = true }
+                        onSelect = { selectedGame ->
+                            if (isActualPlayableGame(selectedGame)) {
+                                showNamePromptForGame = selectedGame
+                                temporaryPlayerName = viewModel.playerAgentName
+                            } else {
+                                viewModel.activeGame = selectedGame
+                            }
+                        }
+                    )
+                    GameType.SNAKE -> RenderGameComponent(GameType.SNAKE, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.TETRIS -> RenderGameComponent(GameType.TETRIS, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.FLAPPYBIRD -> RenderGameComponent(GameType.FLAPPYBIRD, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.TICTACTOE -> RenderGameComponent(GameType.TICTACTOE, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.MEMORY -> RenderGameComponent(GameType.MEMORY, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.SLOTS -> RenderGameComponent(GameType.SLOTS, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.BLACKJACK -> RenderGameComponent(GameType.BLACKJACK, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.MINES -> RenderGameComponent(GameType.MINES, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.DINO -> RenderGameComponent(GameType.DINO, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.TWO_THOUSAND_FORTY_EIGHT -> RenderGameComponent(GameType.TWO_THOUSAND_FORTY_EIGHT, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.PONG -> RenderGameComponent(GameType.PONG, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.DOTS_AND_BOXES -> RenderGameComponent(GameType.DOTS_AND_BOXES, viewModel) { viewModel.activeGame = GameType.HOME }
+                    
+                    GameType.MOCK_GPS -> MockGpsScreen(
+                        viewModel = viewModel,
+                        onBack = { viewModel.activeGame = GameType.HOME }
+                    )
+                    GameType.INTRUDER_PHOTOS -> IntruderPhotosScreen(
+                        viewModel = viewModel,
+                        onBack = { viewModel.activeGame = GameType.HOME }
+                    )
+                    GameType.DISGUISE_SETTINGS -> {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            ThemeSettingsDialog(
+                                viewModel = viewModel,
+                                onDismiss = { viewModel.activeGame = GameType.HOME },
+                                onTriggerUpdate = { showUpdateDialogSecret = true }
+                            )
+                        }
+                    }
+                    GameType.COOP_SPLIT_SCREEN -> CoopSplitScreenPong(
+                        onBack = { viewModel.activeGame = GameType.HOME }
+                    )
+                    GameType.COOP_SPLIT_TUG_OF_WAR -> CoopSplitScreenTugOfWar(
+                        onBack = { viewModel.activeGame = GameType.HOME }
+                    )
+                    GameType.COOP_SPLIT_REACTION -> CoopSplitScreenReaction(
+                        onBack = { viewModel.activeGame = GameType.HOME }
+                    )
+                    GameType.DRIFT_CAR -> RenderGameComponent(GameType.DRIFT_CAR, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.CROWD_RUNNER -> RenderGameComponent(GameType.CROWD_RUNNER, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.RHYTHM_TAPPER -> RenderGameComponent(GameType.RHYTHM_TAPPER, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.SPACE_SHOOTER -> RenderGameComponent(GameType.SPACE_SHOOTER, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.WIFI_SERVER -> LocalWifiFileServer(
+                        onBack = { viewModel.activeGame = GameType.HOME }
                     )
                 }
             }
-            GameType.COOP_SPLIT_SCREEN -> CoopSplitScreenPong(
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.COOP_SPLIT_TUG_OF_WAR -> CoopSplitScreenTugOfWar(
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.COOP_SPLIT_REACTION -> CoopSplitScreenReaction(
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.DRIFT_CAR -> DriftCarGame(
-                highScore = viewModel.driftHighScore,
-                onHighScoreUpdate = { viewModel.driftHighScore = it },
-                coins = viewModel.coins,
-                onCoinsUpdate = { viewModel.coins = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.CROWD_RUNNER -> CrowdRunnerGame(
-                highScore = viewModel.crowdHighScore,
-                onHighScoreUpdate = { viewModel.crowdHighScore = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.RHYTHM_TAPPER -> RhythmTapperGame(
-                highScore = viewModel.rhythmHighScore,
-                onHighScoreUpdate = { viewModel.rhythmHighScore = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.SPACE_SHOOTER -> RetroSpaceShooterGame(
-                highScore = viewModel.spaceHighScore,
-                onHighScoreUpdate = { viewModel.spaceHighScore = it },
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
-            GameType.WIFI_SERVER -> LocalWifiFileServer(
-                onBack = { viewModel.activeGame = GameType.HOME }
-            )
         }
-    }
 
     if (viewModel.activeGame != GameType.HOME) {
         androidx.compose.material3.IconButton(
@@ -1123,6 +1228,95 @@ fun GamesTabScreen(viewModel: AppViewModel) {
         }
     }
 }
+}
+
+@Composable
+fun RenderGameComponent(
+    gameType: GameType,
+    viewModel: AppViewModel,
+    onBack: () -> Unit
+) {
+    when (gameType) {
+        GameType.SNAKE -> SnakeGame(
+            highScore = viewModel.snakeHighScore,
+            onHighScoreUpdate = { viewModel.snakeHighScore = it },
+            onBack = onBack
+        )
+        GameType.TETRIS -> TetrisGame(
+            highScore = viewModel.tetrisHighScore,
+            onHighScoreUpdate = { viewModel.tetrisHighScore = it },
+            onBack = onBack
+        )
+        GameType.FLAPPYBIRD -> FlappyBirdGame(
+            highScore = viewModel.flappyBirdHighScore,
+            onHighScoreUpdate = { viewModel.flappyBirdHighScore = it },
+            onBack = onBack
+        )
+        GameType.TICTACTOE -> TicTacToeGame(
+            wins = viewModel.ticTacToeWins,
+            onWinUpdate = { viewModel.ticTacToeWins = it },
+            onBack = onBack
+        )
+        GameType.MEMORY -> MemoryGame(
+            highScore = viewModel.memoryHighScore,
+            onHighScoreUpdate = { viewModel.memoryHighScore = it },
+            onBack = onBack
+        )
+        GameType.SLOTS -> SlotMachineGame(
+            coins = viewModel.coins,
+            onCoinsUpdate = { viewModel.coins = it },
+            onBack = onBack
+        )
+        GameType.BLACKJACK -> com.example.ui.games.BlackjackGame(
+            coins = viewModel.coins,
+            onCoinsUpdate = { viewModel.coins = it },
+            onBack = onBack
+        )
+        GameType.MINES -> com.example.ui.games.MinesGame(
+            coins = viewModel.coins,
+            onCoinsUpdate = { viewModel.coins = it },
+            onBack = onBack
+        )
+        GameType.DINO -> com.example.ui.games.DinoGame(
+            highScore = viewModel.dinoHighScore,
+            onHighScoreUpdate = { viewModel.dinoHighScore = it },
+            onBack = onBack
+        )
+        GameType.TWO_THOUSAND_FORTY_EIGHT -> com.example.ui.games.TwoThousandFortyEightGame(
+            highScore = viewModel.twoThousandFortyEightHighScore,
+            onHighScoreUpdate = { viewModel.twoThousandFortyEightHighScore = it },
+            onBack = onBack
+        )
+        GameType.PONG -> com.example.ui.games.PongGame(
+            onBack = onBack
+        )
+        GameType.DOTS_AND_BOXES -> com.example.ui.games.DotsAndBoxesGame(
+            onBack = onBack
+        )
+        GameType.DRIFT_CAR -> DriftCarGame(
+            highScore = viewModel.driftHighScore,
+            onHighScoreUpdate = { viewModel.driftHighScore = it },
+            coins = viewModel.coins,
+            onCoinsUpdate = { viewModel.coins = it },
+            onBack = onBack
+        )
+        GameType.CROWD_RUNNER -> CrowdRunnerGame(
+            highScore = viewModel.crowdHighScore,
+            onHighScoreUpdate = { viewModel.crowdHighScore = it },
+            onBack = onBack
+        )
+        GameType.RHYTHM_TAPPER -> RhythmTapperGame(
+            highScore = viewModel.rhythmHighScore,
+            onHighScoreUpdate = { viewModel.rhythmHighScore = it },
+            onBack = onBack
+        )
+        GameType.SPACE_SHOOTER -> RetroSpaceShooterGame(
+            highScore = viewModel.spaceHighScore,
+            onHighScoreUpdate = { viewModel.spaceHighScore = it },
+            onBack = onBack
+        )
+        else -> {}
+    }
 }
 
 @Composable
