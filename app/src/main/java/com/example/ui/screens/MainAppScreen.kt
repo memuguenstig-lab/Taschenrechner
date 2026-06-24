@@ -85,6 +85,7 @@ fun MainAppScreen(
         when (viewModel.disguiseMode) {
             DisguiseMode.CONVERTER -> ConverterScreen(viewModel)
             DisguiseMode.NOTEPAD -> NotepadScreen(viewModel)
+            DisguiseMode.TELEPHONE -> TelephoneScreen(viewModel)
             else -> CalculatorScreen(viewModel, modifier)
         }
     }
@@ -769,7 +770,10 @@ fun SecretSettingsTabScreen(viewModel: AppViewModel) {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Geheime Einstellungen & Beweise", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -834,6 +838,57 @@ fun SecretSettingsTabScreen(viewModel: AppViewModel) {
             Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = Color(0xFF00FFCC))
             Spacer(modifier = Modifier.width(12.dp))
             Text("Beweisfotos anzeigen", fontSize = 16.sp, color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Disguise Mode Selection Header
+        Text(
+            text = "Tarnungs-Modus (Disguise):",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text(
+            text = "Wähle die Tarn-Fassade aus, die angezeigt wird, wenn du die App startest.",
+            fontSize = 12.sp,
+            color = Color(0xFF94A3B8),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+        )
+
+        DisguiseMode.values().forEach { mode ->
+            val isSelected = viewModel.disguiseMode == mode
+            val (label, desc, icon) = when (mode) {
+                DisguiseMode.NONE -> Triple("Normaler Rechner", "Klassisches Design ohne Tarnung", Icons.Default.Calculate)
+                DisguiseMode.CONVERTER -> Triple("Einheiten-Umrechner", "Zahlenumrechner-Fassade", Icons.Default.SwapHoriz)
+                DisguiseMode.NOTEPAD -> Triple("Notizen (Notepad)", "Einfaches Notizen-Schreibprogramm", Icons.Default.Notes)
+                DisguiseMode.TELEPHONE -> Triple("Telefon-Tastenfeld", "Authentisches Wählfeld zur Tarnung", Icons.Default.Phone)
+            }
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 5.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isSelected) Color.White.copy(alpha = 0.08f) else Color.Transparent)
+                    .border(1.dp, if (isSelected) Color(0xFF00FFCC) else Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                    .clickable { viewModel.updateDisguiseMode(mode) }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(icon, contentDescription = null, tint = if (isSelected) Color(0xFF00FFCC) else Color.White.copy(alpha = 0.5f), modifier = Modifier.size(24.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(label, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(desc, fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
+                }
+                if (isSelected) {
+                    Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF00FFCC), modifier = Modifier.size(18.dp))
+                }
+            }
         }
     }
 }
@@ -1330,6 +1385,8 @@ fun GamesCatalogView(
     viewModel: AppViewModel,
     onSelect: (GameType) -> Unit
 ) {
+    val columns = viewModel.gamesGridColumns
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -1343,21 +1400,55 @@ fun GamesCatalogView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.Default.SportsEsports,
-                    contentDescription = "Spiele",
-                    tint = Color(0xFF8B5CF6),
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "🕹️ SPIELESAMMLUNG",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SportsEsports,
+                        contentDescription = "Spiele",
+                        tint = Color(0xFF8B5CF6),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "🕹️ SPIELE",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+
+                // Elegant Segmented Grid columns switcher
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier
+                        .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(10.dp))
+                        .padding(3.dp)
+                ) {
+                    (1..5).forEach { num ->
+                        val isSelected = columns == num
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isSelected) Color(0xFF00FFCC) else Color.Transparent)
+                                .clickable { viewModel.updateGamesGridColumns(num) }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = num.toString(),
+                                color = if (isSelected) Color.Black else Color.White.copy(alpha = 0.7f),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -1419,36 +1510,31 @@ fun GamesCatalogView(
                     Color(0xFF10B981), Color(0xFFA855F7), Color(0xFFFACC15)
                 )
 
-                for (i in gamesList.indices step 2) {
+                val gamesChunks = gamesList.chunked(columns)
+                for (chunk in gamesChunks) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            val data = gamesList[i]
-                            GameCard(
-                                title = data.first,
-                                description = data.second,
-                                highScoreText = data.third.first,
-                                icon = icons[i],
-                                accentColor = colors[i],
-                                onClick = { onSelect(data.third.second) }
-                            )
-                        }
-                        
-                        Box(modifier = Modifier.weight(1f)) {
-                            if (i + 1 < gamesList.size) {
-                                val data = gamesList[i + 1]
-                                GameCard(
-                                    title = data.first,
-                                    description = data.second,
-                                    highScoreText = data.third.first,
-                                    icon = icons[i + 1],
-                                    accentColor = colors[i + 1],
-                                    onClick = { onSelect(data.third.second) }
-                                )
+                        for (itemIndex in 0 until columns) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                if (itemIndex < chunk.size) {
+                                    val data = chunk[itemIndex]
+                                    val absoluteIndex = gamesList.indexOf(data)
+                                    GameCard(
+                                        title = data.first,
+                                        description = data.second,
+                                        highScoreText = data.third.first,
+                                        icon = icons.getOrElse(absoluteIndex) { Icons.Default.SportsEsports },
+                                        accentColor = colors.getOrElse(absoluteIndex) { Color(0xFF00FFCC) },
+                                        columns = columns,
+                                        onClick = { onSelect(data.third.second) }
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.fillMaxWidth())
+                                }
                             }
                         }
                     }
@@ -1503,36 +1589,31 @@ fun GamesCatalogView(
                     Color(0xFF8B5CF6)
                 )
 
-                for (i in toolsList.indices step 2) {
+                val toolsChunks = toolsList.chunked(columns)
+                for (chunk in toolsChunks) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            val data = toolsList[i]
-                            GameCard(
-                                title = data.first,
-                                description = data.second,
-                                highScoreText = data.third.first,
-                                icon = toolIcons[i],
-                                accentColor = toolColors[i],
-                                onClick = { onSelect(data.third.second) }
-                            )
-                        }
-
-                        Box(modifier = Modifier.weight(1f)) {
-                            if (i + 1 < toolsList.size) {
-                                val data = toolsList[i + 1]
-                                GameCard(
-                                    title = data.first,
-                                    description = data.second,
-                                    highScoreText = data.third.first,
-                                    icon = toolIcons[i + 1],
-                                    accentColor = toolColors[i + 1],
-                                    onClick = { onSelect(data.third.second) }
-                                )
+                        for (itemIndex in 0 until columns) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                if (itemIndex < chunk.size) {
+                                    val data = chunk[itemIndex]
+                                    val absoluteIndex = toolsList.indexOf(data)
+                                    GameCard(
+                                        title = data.first,
+                                        description = data.second,
+                                        highScoreText = data.third.first,
+                                        icon = toolIcons.getOrElse(absoluteIndex) { Icons.Default.Security },
+                                        accentColor = toolColors.getOrElse(absoluteIndex) { Color(0xFF00FFCC) },
+                                        columns = columns,
+                                        onClick = { onSelect(data.third.second) }
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.fillMaxWidth())
+                                }
                             }
                         }
                     }
@@ -1549,6 +1630,7 @@ fun GameCard(
     highScoreText: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     accentColor: Color,
+    columns: Int = 2,
     onClick: () -> Unit
 ) {
     var isVisible by remember { mutableStateOf(false) }
@@ -1569,7 +1651,15 @@ fun GameCard(
 
     Card(
         modifier = Modifier
-            .aspectRatio(1f)
+            .aspectRatio(
+                when (columns) {
+                    1 -> 2.4f
+                    3 -> 0.85f
+                    4 -> 0.8f
+                    5 -> 0.75f
+                    else -> 1f
+                }
+            )
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -1579,58 +1669,156 @@ fun GameCard(
             .testTag("game_card_$title"),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937)),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
-        shape = RoundedCornerShape(20.dp)
+        shape = RoundedCornerShape(if (columns >= 4) 10.dp else 16.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Box(
+        if (columns == 1) {
+            Row(
                 modifier = Modifier
-                    .size(44.dp)
-                    .background(accentColor.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(icon, contentDescription = title, tint = accentColor, modifier = Modifier.size(24.dp))
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .background(accentColor.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, contentDescription = title, tint = accentColor, modifier = Modifier.size(30.dp))
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = title,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = description,
+                        fontSize = 11.sp,
+                        color = Color(0xFF94A3B8),
+                        lineHeight = 14.sp,
+                        maxLines = 2
+                    )
+                }
+
+                if (highScoreText.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .background(accentColor.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = highScoreText,
+                            fontSize = 11.sp,
+                            color = accentColor,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
-            
+        } else {
+            val paddingValue = when (columns) {
+                2 -> 12.dp
+                3 -> 8.dp
+                else -> 4.dp
+            }
+            val iconBoxSize = when (columns) {
+                2 -> 44.dp
+                3 -> 36.dp
+                4 -> 28.dp
+                else -> 24.dp
+            }
+            val iconSize = when (columns) {
+                2 -> 24.dp
+                3 -> 20.dp
+                4 -> 16.dp
+                else -> 14.dp
+            }
+            val titleSize = when (columns) {
+                2 -> 13.sp
+                3 -> 11.sp
+                4 -> 9.sp
+                else -> 8.sp
+            }
+            val descSize = when (columns) {
+                2 -> 9.sp
+                3 -> 8.sp
+                else -> 7.sp
+            }
+
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-                modifier = Modifier.weight(1f, fill = false).padding(top = 4.dp)
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
-                Text(
-                    text = description,
-                    fontSize = 9.sp,
-                    color = Color(0xFF94A3B8),
-                    textAlign = TextAlign.Center,
-                    lineHeight = 11.sp,
-                    maxLines = 2
-                )
-            }
-            
-            Text(
-                text = highScoreText,
-                fontSize = 10.sp,
-                color = accentColor,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .background(accentColor.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
-                    .padding(vertical = 4.dp)
-            )
+                    .fillMaxSize()
+                    .padding(paddingValue),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(iconBoxSize)
+                        .background(accentColor.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, contentDescription = title, tint = accentColor, modifier = Modifier.size(iconSize))
+                }
+                
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(1.dp),
+                    modifier = Modifier.weight(1f, fill = false).padding(top = 2.dp)
+                ) {
+                    Text(
+                        text = title,
+                        fontSize = titleSize,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
+                    if (columns <= 3) {
+                        Text(
+                            text = description,
+                            fontSize = descSize,
+                            color = Color(0xFF94A3B8),
+                            textAlign = TextAlign.Center,
+                            lineHeight = if (columns == 2) 11.sp else 9.sp,
+                            maxLines = if (columns == 2) 2 else 1
+                        )
+                    }
+                }
+                
+                if (columns <= 3 && highScoreText.isNotEmpty()) {
+                    Text(
+                        text = highScoreText,
+                        fontSize = if (columns == 2) 10.sp else 8.sp,
+                        color = accentColor,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(accentColor.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
+                            .padding(vertical = if (columns == 2) 4.dp else 2.dp)
+                    )
+                } else if (columns > 3 && highScoreText.isNotEmpty()) {
+                    val shortText = highScoreText.replace("🏆 Rekord: ", "🏆 ").replace("🏆 Siege: ", "🏆 ")
+                    Text(
+                        text = shortText,
+                        fontSize = 7.sp,
+                        color = accentColor,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
+                }
+            }
         }
     }
 }

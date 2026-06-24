@@ -33,7 +33,8 @@ enum class AppTheme {
 enum class DisguiseMode {
     NONE, // Normal Rechner
     CONVERTER, // Einheitenumrechner
-    NOTEPAD // Spy-Gekapseltes Notizbuch
+    NOTEPAD, // Spy-Gekapseltes Notizbuch
+    TELEPHONE // Telefon / Phone dialer fassade
 }
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -167,6 +168,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     var currentSecretSection by mutableStateOf(SecretSection.GAMES)
     var activeGame by mutableStateOf(GameType.HOME)
+    var gamesGridColumns by mutableStateOf(prefs.getInt("gamesGridColumns", 2))
+
+    fun updateGamesGridColumns(cols: Int) {
+        gamesGridColumns = cols
+        prefs.edit().putInt("gamesGridColumns", cols).apply()
+    }
 
     // --- Player / Agent Identity ---
     private var _playerAgentName = mutableStateOf(prefs.getString("playerAgentName", "") ?: "")

@@ -14,6 +14,8 @@ import androidx.camera.view.PreviewView
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -418,6 +420,7 @@ fun ThemeSettingsDialog(
                         DisguiseMode.NONE -> Triple("Normaler Rechner", "Klassisches Design ohne Tarnung", Icons.Default.Calculate)
                         DisguiseMode.CONVERTER -> Triple("Einheiten-Umrechner", "Zahlenumrechner-Fassade", Icons.Default.SwapHoriz)
                         DisguiseMode.NOTEPAD -> Triple("Notizen (Notepad)", "Einfaches Notizen-Schreibprogramm", Icons.Default.Notes)
+                        DisguiseMode.TELEPHONE -> Triple("Telefon-Tastenfeld", "Authentisches Wählfeld zur Tarnung", Icons.Default.Phone)
                     }
                     
                     Row(
@@ -1834,3 +1837,993 @@ fun CoopSplitScreenReaction(onBack: () -> Unit) {
         }
     }
 }
+
+@Composable
+fun TelephoneScreen(viewModel: AppViewModel) {
+    var dialedNumber by remember { mutableStateOf("") }
+    var activeTab by remember { mutableStateOf("Tastenfeld") } // Tastenfeld, Letzte, Kontakte
+    var isCalling by remember { mutableStateOf(false) }
+    var callSeconds by remember { mutableStateOf(0) }
+    var isMuted by remember { mutableStateOf(false) }
+    var isSpeakerOn by remember { mutableStateOf(false) }
+    var searchContactQuery by remember { mutableStateOf("") }
+    var isHold by remember { mutableStateOf(false) }
+    var isBluetooth by remember { mutableStateOf(false) }
+    var showCallKeypad by remember { mutableStateOf(false) }
+    var callKeypadDigits by remember { mutableStateOf("") }
+
+    // Recent Call list state (Mock data)
+    val recentCalls = remember {
+        listOf(
+            Triple("Mama", "Gestern, 18:24", "Mobil (0172 1234567)"),
+            Triple("Chef", "22. Jun, 09:15", "Büro (0172 8888888)"),
+            Triple("Arbeit", "Vor 2 Tagen, 14:02", "Festnetz (089 505050)"),
+            Triple("Pizzeria Bella", "18. Jun, 21:03", "Mobil (0151 9876543)"),
+            Triple("Unbekannt", "12. Jun, 11:40", "Privat")
+        )
+    }
+
+    // Contacts list state (Mock data)
+    val mockContacts = remember {
+        listOf(
+            "Agent Alpha" to "0171 0000001",
+            "Agent Bravo" to "0171 0000002",
+            "Arbeit" to "089 505050",
+            "Chef" to "0172 8888888",
+            "Mama" to "0172 1234567",
+            "Pizzeria Bella" to "0151 9876543"
+        )
+    }
+
+    // Call timer logic
+    LaunchedEffect(isCalling) {
+        if (isCalling) {
+            callSeconds = 0
+            showCallKeypad = false
+            callKeypadDigits = ""
+            isHold = false
+            isBluetooth = false
+            while (isCalling) {
+                delay(1000)
+                callSeconds++
+            }
+        }
+    }
+
+    // Passcode auto-check upon dialed number changes
+    LaunchedEffect(dialedNumber) {
+        val trimmed = dialedNumber.trim()
+        if (trimmed == "0000") {
+            viewModel.isSecretUnlocked = true
+            viewModel.isSecureSecretUnlocked = false
+            viewModel.currentSecretSection = com.example.ui.SecretSection.GAMES
+            dialedNumber = ""
+        } else if (trimmed == "1111") {
+            viewModel.isSecretUnlocked = true
+            viewModel.isSecureSecretUnlocked = true
+            viewModel.currentSecretSection = com.example.ui.SecretSection.SETTINGS
+            dialedNumber = ""
+        } else if (trimmed == "5555") {
+            viewModel.showBrowserHistorySecretView = true
+            viewModel.isSecretUnlocked = true
+            dialedNumber = ""
+        }
+    }
+
+    val matchedCallerName = remember(dialedNumber) {
+        val normalized = dialedNumber.replace(" ", "").replace("-", "")
+        when (normalized) {
+            "01721234567", "+491721234567" -> "Mama"
+            "01728888888", "+491728888888" -> "Chef"
+            "089505050", "+4989505050" -> "Arbeit"
+            "01519876543", "+491519876543" -> "Pizzeria Bella"
+            "01710000001", "+491710000001" -> "Agent Alpha"
+            "01710000002", "+491710000002" -> "Agent Bravo"
+            else -> "Unbekannter Teilnehmer"
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = Color(0xFF0F0E13)
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .statusBarsPadding()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                // TABS FOR SWITCHING
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("Tastenfeld", "Letzte", "Kontakte").forEach { tab ->
+                        val isActive = activeTab == tab
+                        val tabBgColor by animateColorAsState(
+                            targetValue = if (isActive) Color(0xFF00FFCC).copy(alpha = 0.15f) else Color.White.copy(alpha = 0.05f),
+                            animationSpec = tween(250),
+                            label = "tab_bg"
+                        )
+                        val tabBorderColor by animateColorAsState(
+                            targetValue = if (isActive) Color(0xFF00FFCC) else Color.White.copy(alpha = 0.1f),
+                            animationSpec = tween(250),
+                            label = "tab_border"
+                        )
+                        val tabTextColor by animateColorAsState(
+                            targetValue = if (isActive) Color(0xFF00FFCC) else Color.White.copy(alpha = 0.6f),
+                            animationSpec = tween(250),
+                            label = "tab_text"
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(tabBgColor)
+                                .border(1.dp, tabBorderColor, RoundedCornerShape(20.dp))
+                                .clickable { activeTab = tab }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = tab,
+                                color = tabTextColor,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                // MAIN CONTENT VIEW WITH FLUID SLIDE-AND-FADE TAB TRANSITIONS
+                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    AnimatedContent(
+                        targetState = activeTab,
+                        transitionSpec = {
+                            val direction = if (initialState == "Tastenfeld" || (initialState == "Letzte" && targetState == "Kontakte")) 1 else -1
+                            (fadeIn(animationSpec = tween(220, delayMillis = 60)) +
+                                    slideInHorizontally(animationSpec = tween(250)) { width -> direction * width / 4 })
+                                .togetherWith(fadeOut(animationSpec = tween(180)) + slideOutHorizontally(animationSpec = tween(180)) { width -> -direction * width / 6 })
+                        },
+                        label = "TabTransition"
+                    ) { currentTab ->
+                        when (currentTab) {
+                            "Letzte" -> {
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    Text(
+                                        text = "LETZTE ANRUFE",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White.copy(alpha = 0.5f),
+                                        modifier = Modifier.padding(bottom = 12.dp)
+                                    )
+                                    LazyColumn(
+                                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.fillMaxSize()
+                                    ) {
+                                        items(recentCalls) { call ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(Color.White.copy(alpha = 0.02f))
+                                                    .clickable {
+                                                        dialedNumber = call.third.substringAfter("(").substringBefore(")")
+                                                        if (dialedNumber.isNotBlank() && dialedNumber != "Privat") {
+                                                            isCalling = true
+                                                        } else {
+                                                            dialedNumber = call.first
+                                                            isCalling = true
+                                                        }
+                                                    }
+                                                    .padding(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(44.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color.White.copy(alpha = 0.08f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(call.first.take(1), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                                }
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(call.first, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                                                    Text(call.third + " • " + call.second, fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
+                                                }
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFF22C55E).copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(Icons.Default.Phone, contentDescription = "Anrufen", tint = Color(0xFF22C55E), modifier = Modifier.size(16.dp))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            "Kontakte" -> {
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    // Search contact bar
+                                    TextField(
+                                        value = searchContactQuery,
+                                        onValueChange = { searchContactQuery = it },
+                                        placeholder = { Text("Kontakt suchen...", color = Color.White.copy(alpha = 0.4f)) },
+                                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.4f)) },
+                                        trailingIcon = {
+                                            if (searchContactQuery.isNotEmpty()) {
+                                                IconButton(onClick = { searchContactQuery = "" }) {
+                                                    Icon(Icons.Default.Close, contentDescription = "Löschen", tint = Color.White.copy(alpha = 0.5f))
+                                                }
+                                            }
+                                        },
+                                        colors = TextFieldDefaults.colors(
+                                            focusedContainerColor = Color.White.copy(alpha = 0.05f),
+                                            unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
+                                            focusedIndicatorColor = Color(0xFF00FFCC),
+                                            unfocusedIndicatorColor = Color.Transparent,
+                                            focusedTextColor = Color.White,
+                                            unfocusedTextColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true
+                                    )
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    val filteredContacts = mockContacts.filter {
+                                        it.first.contains(searchContactQuery, ignoreCase = true) ||
+                                                it.second.contains(searchContactQuery)
+                                    }
+
+                                    Text("KONTAKTE (${filteredContacts.size})", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.5f), modifier = Modifier.padding(bottom = 8.dp))
+                                    LazyColumn(
+                                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.fillMaxSize()
+                                    ) {
+                                        items(filteredContacts) { contact ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(Color.White.copy(alpha = 0.02f))
+                                                    .clickable {
+                                                        dialedNumber = contact.second.replace(" ", "")
+                                                        isCalling = true
+                                                    }
+                                                    .padding(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(44.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFF00FFCC).copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(contact.first.take(1), color = Color(0xFF00FFCC), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                                }
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(contact.first, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                                                    Text("Mobil: " + contact.second, fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
+                                                }
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFF22C55E).copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(Icons.Default.Phone, contentDescription = "Anrufen", tint = Color(0xFF22C55E), modifier = Modifier.size(16.dp))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            "Tastenfeld" -> {
+                                if (dialedNumber.isEmpty()) {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        val infiniteIconTransition = rememberInfiniteTransition(label = "icon_pulse")
+                                        val iconScale by infiniteIconTransition.animateFloat(
+                                            initialValue = 0.95f,
+                                            targetValue = 1.05f,
+                                            animationSpec = infiniteRepeatable(
+                                                animation = tween(2000, easing = EaseInOutSine),
+                                                repeatMode = RepeatMode.Reverse
+                                            ),
+                                            label = "scale"
+                                        )
+
+                                        Icon(
+                                            imageVector = Icons.Default.Phone,
+                                            contentDescription = null,
+                                            tint = Color.White.copy(alpha = 0.12f),
+                                            modifier = Modifier
+                                                .size(96.dp)
+                                                .graphicsLayer {
+                                                    scaleX = iconScale
+                                                    scaleY = iconScale
+                                                }
+                                        )
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Text(
+                                            text = "Nummer eingeben",
+                                            color = Color.White.copy(alpha = 0.4f),
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Code wählen für Tresor-Unlock",
+                                            color = Color.White.copy(alpha = 0.25f),
+                                            fontSize = 11.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // DIALED NUMBER DISPLAY WITH ADD/REMOVE TRANSITION
+                AnimatedVisibility(
+                    visible = dialedNumber.isNotEmpty(),
+                    enter = fadeIn() + expandVertically() + scaleIn(initialScale = 0.9f),
+                    exit = fadeOut() + shrinkVertically() + scaleOut(targetScale = 0.9f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White.copy(alpha = 0.03f))
+                            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AnimatedContent(
+                            targetState = dialedNumber,
+                            transitionSpec = {
+                                if (targetState.length > initialState.length) {
+                                    (slideInHorizontally { it / 4 } + fadeIn()).togetherWith(slideOutHorizontally { -it / 6 } + fadeOut())
+                                } else {
+                                    (slideInHorizontally { -it / 4 } + fadeIn()).togetherWith(slideOutHorizontally { it / 6 } + fadeOut())
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            label = "dialed_text"
+                        ) { text ->
+                            Text(
+                                text = text,
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF00FFCC),
+                                textAlign = TextAlign.Center,
+                                letterSpacing = 1.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = { if (dialedNumber.isNotEmpty()) dialedNumber = dialedNumber.dropLast(1) },
+                            modifier = Modifier.background(Color.White.copy(alpha = 0.06f), CircleShape)
+                        ) {
+                            Icon(Icons.Default.Backspace, contentDescription = "Löschen", tint = Color.White.copy(alpha = 0.8f))
+                        }
+                    }
+                }
+
+                // DIAL PAD GRID (Always visible on "Tastenfeld" tab)
+                if (activeTab == "Tastenfeld") {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        val row1 = listOf("1" to "", "2" to "A B C", "3" to "D E F")
+                        val row2 = listOf("4" to "G H I", "5" to "J K L", "6" to "M N O")
+                        val row3 = listOf("7" to "P Q R S", "8" to "T U V", "9" to "W X Y Z")
+                        val row4 = listOf("*" to "", "0" to "+", "#" to "")
+
+                        listOf(row1, row2, row3, row4).forEach { row ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                row.forEach { (digit, letters) ->
+                                    DialerKey(digit, letters) {
+                                        dialedNumber += digit
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // CALL BUTTON ROW
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            var isPressedCall by remember { mutableStateOf(false) }
+                            val callScale by animateFloatAsState(
+                                targetValue = if (isPressedCall) 0.85f else 1.0f,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                                label = "call_btn_scale"
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .size(76.dp)
+                                    .graphicsLayer {
+                                        scaleX = callScale
+                                        scaleY = callScale
+                                    }
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF22C55E))
+                                    .clickable {
+                                        if (dialedNumber.isNotEmpty()) {
+                                            isCalling = true
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Phone, contentDescription = "Anrufen", tint = Color.White, modifier = Modifier.size(34.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // FULLSCREEN CALLING OVERLAY WITH SPRING SLIDE-IN & 3 STAGGERED PULSING CONCENTRIC RINGS
+        AnimatedVisibility(
+            visible = isCalling,
+            enter = slideInVertically(initialOffsetY = { it }, animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessLow)) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }, animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMedium)) + fadeOut()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0xFF161B33), Color(0xFF0D0E15))
+                        )
+                    )
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Top: Connection info
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(top = 40.dp)
+                    ) {
+                        Text(
+                            text = "Mobiles Netz",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            fontFamily = FontFamily.Monospace,
+                            letterSpacing = 1.5.sp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = if (matchedCallerName != "Unbekannter Teilnehmer") matchedCallerName else dialedNumber,
+                            color = Color.White,
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (matchedCallerName != "Unbekannter Teilnehmer") {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = dialedNumber,
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 15.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        // Status text transitioning
+                        val callStatusText = if (callSeconds < 2) {
+                            "Verbindung wird hergestellt..."
+                        } else {
+                            val formattedTime = String.format(java.util.Locale.US, "%02d:%02d", callSeconds / 60, callSeconds % 60)
+                            "Anruf aktiv • $formattedTime"
+                        }
+
+                        Text(
+                            text = callStatusText,
+                            color = if (callSeconds < 2) Color.White.copy(alpha = 0.6f) else Color(0xFF00FFCC),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Middle: Animated Content transitioning between pulsing Rings/Avatar and DTMF keypad
+                    AnimatedContent(
+                        targetState = showCallKeypad,
+                        transitionSpec = {
+                            (fadeIn(animationSpec = tween(220)) + scaleIn(initialScale = 0.92f)).togetherWith(
+                                fadeOut(animationSpec = tween(180)) + scaleOut(targetScale = 0.92f)
+                            )
+                        },
+                        modifier = Modifier.height(260.dp),
+                        label = "calling_middle_content"
+                    ) { showKeypad ->
+                        if (showKeypad) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                // Display of typed DTMF tones
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                                ) {
+                                    Text(
+                                        text = if (callKeypadDigits.isEmpty()) "Tippe Ziffer..." else callKeypadDigits,
+                                        color = if (callKeypadDigits.isEmpty()) Color.White.copy(alpha = 0.3f) else Color(0xFF00FFCC),
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    if (callKeypadDigits.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        IconButton(
+                                            onClick = { callKeypadDigits = "" },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Löschen",
+                                                tint = Color.White.copy(alpha = 0.4f),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Grid of compact keys
+                                val dtmfKeys = listOf(
+                                    listOf("1", "2", "3"),
+                                    listOf("4", "5", "6"),
+                                    listOf("7", "8", "9"),
+                                    listOf("*", "0", "#")
+                                )
+
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    dtmfKeys.forEach { row ->
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+                                            row.forEach { char ->
+                                                val interactionSource = remember { MutableInteractionSource() }
+                                                val isPressed by interactionSource.collectIsPressedAsState()
+                                                val keyScale by animateFloatAsState(
+                                                    targetValue = if (isPressed) 0.85f else 1.0f,
+                                                    label = "dtmf_key_scale"
+                                                )
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(46.dp)
+                                                        .graphicsLayer {
+                                                            scaleX = keyScale
+                                                            scaleY = keyScale
+                                                        }
+                                                        .clip(CircleShape)
+                                                        .background(if (isPressed) Color(0xFF00FFCC).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.08f))
+                                                        .border(1.dp, if (isPressed) Color(0xFF00FFCC) else Color.White.copy(alpha = 0.15f), CircleShape)
+                                                        .clickable(
+                                                            interactionSource = interactionSource,
+                                                            indication = androidx.compose.foundation.LocalIndication.current,
+                                                            onClick = {
+                                                                callKeypadDigits += char
+                                                                val trimmed = callKeypadDigits.trim()
+                                                                if (trimmed.endsWith("0000")) {
+                                                                    viewModel.isSecretUnlocked = true
+                                                                    viewModel.isSecureSecretUnlocked = false
+                                                                    viewModel.currentSecretSection = com.example.ui.SecretSection.GAMES
+                                                                    isCalling = false
+                                                                    showCallKeypad = false
+                                                                    callKeypadDigits = ""
+                                                                } else if (trimmed.endsWith("1111")) {
+                                                                    viewModel.isSecretUnlocked = true
+                                                                    viewModel.isSecureSecretUnlocked = true
+                                                                    viewModel.currentSecretSection = com.example.ui.SecretSection.SETTINGS
+                                                                    isCalling = false
+                                                                    showCallKeypad = false
+                                                                    callKeypadDigits = ""
+                                                                } else if (trimmed.endsWith("5555")) {
+                                                                    viewModel.showBrowserHistorySecretView = true
+                                                                    viewModel.isSecretUnlocked = true
+                                                                    isCalling = false
+                                                                    showCallKeypad = false
+                                                                    callKeypadDigits = ""
+                                                                }
+                                                            }
+                                                        ),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(char, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = "Geheimcode '0000' oder '1111' zum Tresor-Unlock",
+                                    color = Color.White.copy(alpha = 0.22f),
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
+                        } else {
+                            // Concentric pulsing rings and contact avatar
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.size(240.dp)
+                            ) {
+                                // Staggered Concentric Waves
+                                val transition = rememberInfiniteTransition(label = "concentric_pulse")
+                                
+                                // Ring 1 (Inner Wave)
+                                val pulse1Scale by transition.animateFloat(
+                                    initialValue = 1f,
+                                    targetValue = 1.5f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(1600, delayMillis = 0, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Restart
+                                    ),
+                                    label = "p1"
+                                )
+                                val pulse1Alpha by transition.animateFloat(
+                                    initialValue = 0.35f,
+                                    targetValue = 0f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(1600, delayMillis = 0, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Restart
+                                    ),
+                                    label = "a1"
+                                )
+
+                                // Ring 2 (Middle Wave)
+                                val pulse2Scale by transition.animateFloat(
+                                    initialValue = 1f,
+                                    targetValue = 1.9f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(1600, delayMillis = 400, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Restart
+                                    ),
+                                    label = "p2"
+                                )
+                                val pulse2Alpha by transition.animateFloat(
+                                    initialValue = 0.25f,
+                                    targetValue = 0f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(1600, delayMillis = 400, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Restart
+                                    ),
+                                    label = "a2"
+                                )
+
+                                // Ring 3 (Outer Wave)
+                                val pulse3Scale by transition.animateFloat(
+                                    initialValue = 1f,
+                                    targetValue = 2.3f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(1600, delayMillis = 800, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Restart
+                                    ),
+                                    label = "p3"
+                                )
+                                val pulse3Alpha by transition.animateFloat(
+                                    initialValue = 0.15f,
+                                    targetValue = 0f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(1600, delayMillis = 800, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Restart
+                                    ),
+                                    label = "a3"
+                                )
+
+                                if (callSeconds < 300) {
+                                    // Ring 3 (Outer)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer {
+                                                scaleX = pulse3Scale
+                                                scaleY = pulse3Scale
+                                            }
+                                            .background(Color(0xFF00FFCC).copy(alpha = pulse3Alpha), CircleShape)
+                                    )
+                                    // Ring 2 (Middle)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer {
+                                                scaleX = pulse2Scale
+                                                scaleY = pulse2Scale
+                                            }
+                                            .background(Color(0xFF00FFCC).copy(alpha = pulse2Alpha), CircleShape)
+                                    )
+                                    // Ring 1 (Inner)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer {
+                                                scaleX = pulse1Scale
+                                                scaleY = pulse1Scale
+                                            }
+                                            .background(Color(0xFF00FFCC).copy(alpha = pulse1Alpha), CircleShape)
+                                    )
+                                }
+
+                                // Contact Avatar Container
+                                Box(
+                                    modifier = Modifier
+                                        .size(110.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White.copy(alpha = 0.08f))
+                                        .border(2.dp, Color.White.copy(alpha = 0.15f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = Color.White.copy(alpha = 0.8f),
+                                        modifier = Modifier.size(52.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Bottom: Highly Interactive 3x2 Grid and End Call Button
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    ) {
+                        // 3x2 Call Controls Grid
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                CallControlButton(
+                                    icon = Icons.Default.MicOff,
+                                    label = "Stumm",
+                                    isActive = isMuted,
+                                    onClick = { isMuted = !isMuted }
+                                )
+                                CallControlButton(
+                                    icon = Icons.Default.Dialpad,
+                                    label = "Tastenfeld",
+                                    isActive = showCallKeypad,
+                                    onClick = { showCallKeypad = !showCallKeypad }
+                                )
+                                CallControlButton(
+                                    icon = Icons.Default.VolumeUp,
+                                    label = "Lautsprecher",
+                                    isActive = isSpeakerOn,
+                                    onClick = { isSpeakerOn = !isSpeakerOn }
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                CallControlButton(
+                                    icon = Icons.Default.Add,
+                                    label = "Hinzufügen",
+                                    isActive = false,
+                                    onClick = { /* Simulated adding call */ }
+                                )
+                                CallControlButton(
+                                    icon = Icons.Default.Pause,
+                                    label = "Halten",
+                                    isActive = isHold,
+                                    onClick = { isHold = !isHold }
+                                )
+                                CallControlButton(
+                                    icon = Icons.Default.Bluetooth,
+                                    label = "Bluetooth",
+                                    isActive = isBluetooth,
+                                    onClick = { isBluetooth = !isBluetooth }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Hang up button (rotated phone icon)
+                        var isPressedHangUp by remember { mutableStateOf(false) }
+                        val hangUpScale by animateFloatAsState(
+                            targetValue = if (isPressedHangUp) 0.85f else 1.0f,
+                            label = "hang_up_scale"
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .size(76.dp)
+                                .graphicsLayer {
+                                    scaleX = hangUpScale
+                                    scaleY = hangUpScale
+                                }
+                                .clip(CircleShape)
+                                .background(Color(0xFFEF4444))
+                                .clickable {
+                                    isCalling = false
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Phone,
+                                contentDescription = "Auflegen",
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .graphicsLayer(rotationZ = 135f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DialerKey(
+    digit: String,
+    letters: String,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.85f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "dialer_scale"
+    )
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isPressed) Color(0xFF00FFCC).copy(alpha = 0.2f) else Color.White.copy(alpha = 0.04f),
+        animationSpec = tween(120),
+        label = "dialer_bg"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (isPressed) Color(0xFF00FFCC) else Color.White.copy(alpha = 0.08f),
+        animationSpec = tween(120),
+        label = "dialer_border"
+    )
+
+    Box(
+        modifier = Modifier
+            .size(74.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(CircleShape)
+            .background(backgroundColor)
+            .border(1.dp, borderColor, CircleShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = androidx.compose.foundation.LocalIndication.current,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = digit,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isPressed) Color(0xFF00FFCC) else Color.White,
+                lineHeight = 30.sp
+            )
+            if (letters.isNotEmpty()) {
+                Text(
+                    text = letters,
+                    fontSize = 10.sp,
+                    color = if (isPressed) Color(0xFF00FFCC).copy(alpha = 0.7f) else Color.White.copy(alpha = 0.45f),
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 11.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CallControlButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "btn_scale"
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(76.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(62.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .clip(CircleShape)
+                .background(if (isActive) Color(0xFF00FFCC).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.06f))
+                .border(1.dp, if (isActive) Color(0xFF00FFCC) else Color.White.copy(alpha = 0.1f), CircleShape)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = androidx.compose.foundation.LocalIndication.current,
+                    onClick = onClick
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (isActive) Color(0xFF00FFCC) else Color.White,
+                modifier = Modifier.size(26.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = label,
+            color = if (isActive) Color(0xFF00FFCC) else Color.White.copy(alpha = 0.6f),
+            fontSize = 11.sp,
+            maxLines = 1,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
