@@ -123,7 +123,6 @@ fun DriftCarGame(
     var highscore by remember(highScore) { mutableStateOf(highScore) }
     var isCarInitialized by remember { mutableStateOf(false) }
     var prevCw by remember { mutableStateOf(0f) }
-    var coinsAddedForThisRun by remember { mutableStateOf(false) }
 
     // Physical Car variables (computed in pixels during canvas loop)
     var carX by remember { mutableStateOf(0f) } // Initialized in first loop
@@ -160,7 +159,6 @@ fun DriftCarGame(
         speedMultiplier = 1.0f
         smokeParticles.clear()
         skidMarks.clear()
-        coinsAddedForThisRun = false
     }
 
     // Curving road center generator based on world Y coordinate
@@ -806,7 +804,6 @@ fun DriftCarGame(
                             driftCombo = 0f
                             steerLeftPressed = false
                             steerRightPressed = false
-                            coinsAddedForThisRun = false
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFCC)),
                         modifier = Modifier
@@ -1034,7 +1031,6 @@ fun DriftCarGame(
                                 steerLeftPressed = false
                                 steerRightPressed = false
                                 distanceTraveled = 0f
-                                coinsAddedForThisRun = false
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
                             modifier = Modifier.fillMaxWidth().height(48.dp),

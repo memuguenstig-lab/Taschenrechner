@@ -1476,23 +1476,9 @@ fun GamesCatalogView(
                         Text(
                             text = "💰 ${viewModel.coins}",
                             color = Color(0xFFFACC15),
-                            fontSize = 11.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(Color(0xFF22C55E))
-                                .padding(horizontal = 4.dp, vertical = 1.dp)
-                        ) {
-                            Text(
-                                "AD",
-                                color = Color.Black,
-                                fontSize = 8.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
                     }
 
                     // Elegant Segmented Grid columns switcher
