@@ -1282,6 +1282,41 @@ fun GamesTabScreen(viewModel: AppViewModel) {
             )
         }
     }
+
+    if (viewModel.isWatchingAd) {
+        AdPlaybackOverlay(viewModel = viewModel)
+    }
+
+    if (viewModel.isAdSelectionOpen) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { viewModel.isAdSelectionOpen = false }) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Color(0xFF38BDF8))
+            ) {
+                Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(imageVector = Icons.Default.Tv, contentDescription = null, tint = Color(0xFFFACC15), modifier = Modifier.size(48.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Werbung schauen?", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Wähle eine Länge, um kostenlose Münzen zu erhalten. (Nicht überspringbar!)", color = Color.Gray, fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    Button(onClick = { viewModel.startAd(1, 10) }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))) {
+                        Text("1 Minute = 10 💰", color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { viewModel.startAd(5, 100) }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))) {
+                        Text("5 Minuten = 100 💰", color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { viewModel.startAd(10, 500) }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFCC))) {
+                        Text("10 Minuten = 500 💰", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
 }
 }
 
@@ -1305,6 +1340,8 @@ fun RenderGameComponent(
         GameType.FLAPPYBIRD -> FlappyBirdGame(
             highScore = viewModel.flappyBirdHighScore,
             onHighScoreUpdate = { viewModel.flappyBirdHighScore = it },
+            coins = viewModel.coins,
+            onCoinsUpdate = { viewModel.coins = it },
             onBack = onBack
         )
         GameType.TICTACTOE -> TicTacToeGame(
@@ -1422,30 +1459,67 @@ fun GamesCatalogView(
                     )
                 }
 
-                // Elegant Segmented Grid columns switcher
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    modifier = Modifier
-                        .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(10.dp))
-                        .padding(3.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    (1..5).forEach { num ->
-                        val isSelected = columns == num
+                    // Coin balance and add button
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFFACC15).copy(alpha = 0.15f))
+                            .border(1.dp, Color(0xFFFACC15).copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                            .clickable { viewModel.openAdSelection() }
+                            .padding(horizontal = 8.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = "💰 ${viewModel.coins}",
+                            color = Color(0xFFFACC15),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(if (isSelected) Color(0xFF00FFCC) else Color.Transparent)
-                                .clickable { viewModel.updateGamesGridColumns(num) }
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            contentAlignment = Alignment.Center
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFF22C55E))
+                                .padding(horizontal = 4.dp, vertical = 1.dp)
                         ) {
                             Text(
-                                text = num.toString(),
-                                color = if (isSelected) Color.Black else Color.White.copy(alpha = 0.7f),
-                                fontSize = 10.sp,
+                                "AD",
+                                color = Color.Black,
+                                fontSize = 8.sp,
                                 fontWeight = FontWeight.Bold
                             )
+                        }
+                    }
+
+                    // Elegant Segmented Grid columns switcher
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier
+                            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(10.dp))
+                            .padding(3.dp)
+                    ) {
+                        (1..5).forEach { num ->
+                            val isSelected = columns == num
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isSelected) Color(0xFF00FFCC) else Color.Transparent)
+                                    .clickable { viewModel.updateGamesGridColumns(num) }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = num.toString(),
+                                    color = if (isSelected) Color.Black else Color.White.copy(alpha = 0.7f),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -2854,3 +2928,131 @@ data class AchievementItem(
     val description: String,
     val unlocked: Boolean
 )
+
+@Composable
+fun AdPlaybackOverlay(viewModel: AppViewModel) {
+    var fakeAdIndex by remember { mutableStateOf(0) }
+    val fakeAds = listOf(
+        "💸 INVESTIERE IN KRYPTO-AGENT-COINS!\nVerdopple dein Geld in -5 Tagen!",
+        "🔥 HEISSE AGENTEN IN DEINER NÄHE!\nTriff James B. für geheime Missionen!",
+        "🚗 DRIFT SIMULATOR 2026:\nJetzt herunterladen & jede Sekunde crashen!",
+        "🐤 FLAPPY BIRD PRO 2.0:\nHol dir den Diamant-Skin für 500 Münzen!",
+        "🦖 GOOGLE DINO PET:\nFüttere deinen T-Rex! (Achtung: Beißt!)"
+    )
+
+    LaunchedEffect(viewModel.isWatchingAd) {
+        if (viewModel.isWatchingAd) {
+            while (viewModel.adTimeRemaining > 0) {
+                kotlinx.coroutines.delay(1000)
+                viewModel.adTimeRemaining--
+                if (viewModel.adTimeRemaining % 4 == 0) {
+                    fakeAdIndex = (fakeAdIndex + 1) % fakeAds.size
+                }
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.96f))
+            .clickable(enabled = false) { /* Block touches */ },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(24.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Tv,
+                contentDescription = "Ad",
+                tint = Color(0xFFFACC15),
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "📺 SPONSOR-ANZEIGE",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Nicht überspringbare Werbung für kostenlose Münzen",
+                color = Color.Gray,
+                fontSize = 11.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Fake ad container
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937)),
+                border = BorderStroke(2.dp, Color(0xFF00FFCC)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .padding(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = fakeAds[fakeAdIndex],
+                        color = Color(0xFF00FFCC),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        lineHeight = 20.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            if (viewModel.adTimeRemaining > 0) {
+                val min = viewModel.adTimeRemaining / 60
+                val sec = viewModel.adTimeRemaining % 60
+                Text(
+                    text = "Werbung endet in: ${min}m ${sec}s",
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                LinearProgressIndicator(
+                    progress = { (viewModel.currentAdTotalTime - viewModel.adTimeRemaining) / viewModel.currentAdTotalTime.toFloat() },
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = Color(0xFF00FFCC),
+                    trackColor = Color.White.copy(alpha = 0.1f)
+                )
+            } else {
+                Text(
+                    text = "Glückwunsch! Du hast ${viewModel.currentAdReward} Münzen verdient! 🎉",
+                    color = Color(0xFFFACC15),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { viewModel.awardAdCoins() },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFCC))
+                ) {
+                    Text(
+                        "BELOHNUNG BEANSPRUCHEN (+${viewModel.currentAdReward} 💰)",
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}

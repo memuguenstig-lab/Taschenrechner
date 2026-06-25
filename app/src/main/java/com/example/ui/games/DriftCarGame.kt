@@ -486,13 +486,6 @@ fun DriftCarGame(
                             highscore = score
                             onHighScoreUpdate(score)
                         }
-                        if (!coinsAddedForThisRun) {
-                            val earned = if (score > 10) (score / 40).coerceAtMost(30) else 0
-                            if (earned > 0) {
-                                onCoinsUpdate(coins + earned)
-                            }
-                            coinsAddedForThisRun = true
-                        }
                     }
                 }
 
@@ -991,17 +984,6 @@ fun DriftCarGame(
                             fontSize = 14.sp
                         )
 
-                        val coinsEarned = if (score > 10) (score / 40).coerceAtMost(30) else 0
-                        if (coinsEarned > 0) {
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text(
-                                "💰 COIN-BELOHNUNG: +$coinsEarned COINS!",
-                                color = Color(0xFFFACC15),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             "NEUES GUTHABEN: $coins 💰",

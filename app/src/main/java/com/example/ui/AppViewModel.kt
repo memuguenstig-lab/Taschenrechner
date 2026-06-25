@@ -170,6 +170,31 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var activeGame by mutableStateOf(GameType.HOME)
     var gamesGridColumns by mutableStateOf(prefs.getInt("gamesGridColumns", 2))
 
+    var isWatchingAd by mutableStateOf(false)
+    var isAdSelectionOpen by mutableStateOf(false)
+    var adTimeRemaining by mutableStateOf(0)
+    var currentAdReward by mutableStateOf(0)
+    var currentAdTotalTime by mutableStateOf(0)
+
+    fun openAdSelection() {
+        isAdSelectionOpen = true
+    }
+
+    fun startAd(minutes: Int, reward: Int) {
+        isAdSelectionOpen = false
+        if (!isWatchingAd) {
+            isWatchingAd = true
+            adTimeRemaining = minutes * 60
+            currentAdTotalTime = minutes * 60
+            currentAdReward = reward
+        }
+    }
+
+    fun awardAdCoins() {
+        coins += currentAdReward
+        isWatchingAd = false
+    }
+
     fun updateGamesGridColumns(cols: Int) {
         gamesGridColumns = cols
         prefs.edit().putInt("gamesGridColumns", cols).apply()

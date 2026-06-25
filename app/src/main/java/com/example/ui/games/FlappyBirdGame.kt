@@ -3,6 +3,12 @@ package com.example.ui.games
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,12 +45,41 @@ data class ObstaclePipe(
     var passed: Boolean = false
 )
 
+data class FlappySkin(
+    val id: String,
+    val name: String,
+    val color: Color,
+    val eyeColor: Color,
+    val beakColor: Color,
+    val price: Int,
+    val requiredScore: Int = 0
+)
+
+val FlappySkinsList = listOf(
+    FlappySkin("yellow", "Klassisch Gelb", Color(0xFFFACC15), Color.White, Color(0xFFF97316), 0),
+    FlappySkin("mint", "Neon Minze", Color(0xFF00FFCC), Color.White, Color(0xFFFF007F), 50),
+    FlappySkin("ruby", "Rubinrot", Color(0xFFEF4444), Color.White, Color(0xFF1E293B), 100),
+    FlappySkin("shadow", "Schattenlila", Color(0xFF8B5CF6), Color.Yellow, Color(0xFF00FFCC), 180),
+    FlappySkin("gold", "Gefiedertes Gold", Color(0xFFD97706), Color.Cyan, Color(0xFFFFE100), 0, requiredScore = 15)
+)
+
 @Composable
 fun FlappyBirdGame(
     highScore: Int,
     onHighScoreUpdate: (Int) -> Unit,
+    coins: Int,
+    onCoinsUpdate: (Int) -> Unit,
     onBack: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { context.getSharedPreferences("agent_prefs", android.content.Context.MODE_PRIVATE) }
+
+    var selectedSkinId by remember { mutableStateOf(prefs.getString("selected_flappy_skin", "yellow") ?: "yellow") }
+    var unlockedSkinsString by remember { mutableStateOf(prefs.getString("unlocked_flappy_skins", "yellow") ?: "yellow") }
+
+    val unlockedSkins = remember(unlockedSkinsString) { unlockedSkinsString.split(",").toSet() }
+    val currentSkin = FlappySkinsList.firstOrNull { it.id == selectedSkinId } ?: FlappySkinsList[0]
+
     // Game dynamic metrics
     var birdY by remember { mutableStateOf(0.4f) } // normalized height from 0f to 1f
     var birdVelocity by remember { mutableStateOf(0f) }
@@ -57,6 +92,10 @@ fun FlappyBirdGame(
     
     var difficulty by remember { mutableStateOf<FlappyDifficulty?>(null) }
     var countdownValue by remember { mutableIntStateOf(0) }
+
+    // Coins-Stake Flow
+    var isPaidMode by remember { mutableStateOf(false) }
+    var coinsAwardedForThisRun by remember { mutableStateOf(false) }
 
     // Pipes list (normalized coords)
     val pipes = remember { mutableStateListOf<ObstaclePipe>() }
@@ -79,6 +118,7 @@ fun FlappyBirdGame(
         resetPipes()
         countdownValue = 0
         difficulty = null
+        coinsAwardedForThisRun = false
     }
 
     // Action Flap
@@ -121,6 +161,10 @@ fun FlappyBirdGame(
                 if (birdY >= 1.0f) {
                     isGameOver = true
                     if (score > highScore) onHighScoreUpdate(score)
+                    if (isPaidMode && !coinsAwardedForThisRun) {
+                        onCoinsUpdate(coins + score)
+                        coinsAwardedForThisRun = true
+                    }
                     break
                 }
 
@@ -172,6 +216,10 @@ fun FlappyBirdGame(
                         if (birdY - birdRadius < gapTop || birdY + birdRadius > gapBottom) {
                             isGameOver = true
                             if (score > highScore) onHighScoreUpdate(score)
+                            if (isPaidMode && !coinsAwardedForThisRun) {
+                                onCoinsUpdate(coins + score)
+                                coinsAwardedForThisRun = true
+                            }
                             break
                         }
                     }
@@ -214,7 +262,7 @@ fun FlappyBirdGame(
                         color = Color(0xFFEAB308)
                     )
                     Text(
-                        "Punkte: $score  🏆 Rekord: $highScore",
+                        "Punkte: $score  🏆 Rekord: $highScore  💰 $coins",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.8f)
                     )
@@ -315,27 +363,27 @@ fun FlappyBirdGame(
                         )
                     }
 
-                    // Draw Bird (bright cute yellow circle with orange beak and dynamic eye)
+                    // Draw Bird (skin customizable!)
                     val birdX = w * 0.25f
                     val bY = birdY * h
                     val bRadius = h * 0.035f
 
                     // Wings/Outer body
                     drawCircle(
-                        color = Color(0xFFFACC15), // Yellow
+                        color = currentSkin.color,
                         radius = bRadius,
                         center = Offset(birdX, bY)
                     )
                     // Beak
                     drawRoundRect(
-                        color = Color(0xFFF97316), // Orange
+                        color = currentSkin.beakColor,
                         topLeft = Offset(birdX + bRadius - 6f, bY - 8f),
                         size = Size(16f, 14f),
                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
                     )
                     // Eye
                     drawCircle(
-                        color = Color.White,
+                        color = currentSkin.eyeColor,
                         radius = bRadius * 0.35f,
                         center = Offset(birdX + bRadius * 0.3f, bY - bRadius * 0.3f)
                     )
@@ -346,7 +394,7 @@ fun FlappyBirdGame(
                     )
                     // Wing flap overlay
                     drawOval(
-                        color = Color(0xFFEAB308),
+                        color = currentSkin.color.copy(alpha = 0.8f),
                         topLeft = Offset(birdX - bRadius * 0.8f, bY - bRadius * 0.2f),
                         size = Size(bRadius * 0.9f, bRadius * 0.6f)
                     )
@@ -357,40 +405,209 @@ fun FlappyBirdGame(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.6f)),
+                            .background(Color.Black.copy(alpha = 0.88f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                                .verticalScroll(rememberScrollState())
                         ) {
                             Text(
-                                "Wähle Schwierigkeit",
+                                "Flappy Setup 🐥",
                                 color = Color.White,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(bottom = 16.dp)
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold
                             )
-                            FlappyDifficulty.values().forEach { diff ->
-                                Button(
-                                    onClick = { 
-                                        difficulty = diff
-                                        resetPipes()
-                                        countdownValue = 3
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = when (diff) {
-                                            FlappyDifficulty.EASY -> Color(0xFF10B981)
-                                            FlappyDifficulty.MEDIUM -> Color(0xFFF59E0B)
-                                            FlappyDifficulty.HARD -> Color(0xFFEF4444)
+
+                            // --- SECTION 1: SKIN SELECTION ---
+                            Text(
+                                "Wähle Vogel-Skin",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            androidx.compose.foundation.lazy.LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(FlappySkinsList.size) { index ->
+                                    val skin = FlappySkinsList[index]
+                                    val isUnlocked = skin.price == 0 && highScore >= skin.requiredScore || unlockedSkins.contains(skin.id) || skin.id == "yellow"
+                                    val isLockedByScore = skin.requiredScore > 0 && highScore < skin.requiredScore
+                                    val isSelected = skin.id == selectedSkinId
+
+                                    Card(
+                                        modifier = Modifier
+                                            .width(96.dp)
+                                            .clickable {
+                                                if (isUnlocked) {
+                                                    selectedSkinId = skin.id
+                                                    prefs.edit().putString("selected_flappy_skin", skin.id).apply()
+                                                } else if (!isLockedByScore && coins >= skin.price) {
+                                                    onCoinsUpdate(coins - skin.price)
+                                                    val newUnlocked = (unlockedSkins + skin.id).joinToString(",")
+                                                    unlockedSkinsString = newUnlocked
+                                                    prefs.edit().putString("unlocked_flappy_skins", newUnlocked).apply()
+                                                    selectedSkinId = skin.id
+                                                    prefs.edit().putString("selected_flappy_skin", skin.id).apply()
+                                                }
+                                            },
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (isSelected) Color(0xFF1E293B) else Color(0xFF0F172A)
+                                        ),
+                                        border = BorderStroke(
+                                            2.dp,
+                                            if (isSelected) Color(0xFF00FFCC) else Color.White.copy(alpha = 0.1f)
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            modifier = Modifier.padding(8.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .background(skin.color, CircleShape)
+                                                    .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Box(modifier = Modifier.fillMaxSize()) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .align(Alignment.CenterEnd)
+                                                            .size(6.dp)
+                                                            .background(skin.beakColor, RoundedCornerShape(1.dp))
+                                                    )
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .align(Alignment.TopCenter)
+                                                            .padding(top = 6.dp, start = 6.dp)
+                                                            .size(5.dp)
+                                                            .background(skin.eyeColor, CircleShape)
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                skin.name,
+                                                color = Color.White,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            if (isUnlocked) {
+                                                Text("Aktiv", color = Color(0xFF10B981), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                            } else if (isLockedByScore) {
+                                                Text("🏆 HS: ${skin.requiredScore}", color = Color(0xFFEF4444), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                            } else {
+                                                Text("💰 ${skin.price}", color = Color(0xFFFACC15), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                            }
                                         }
-                                    ),
+                                    }
+                                }
+                            }
+
+                            // --- SECTION 2: COIN ENTRY FEE ---
+                            Text(
+                                "Münzen-Einsatz",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Card(
                                     modifier = Modifier
-                                        .fillMaxWidth(0.7f)
-                                        .padding(vertical = 6.dp)
+                                        .weight(1f)
+                                        .clickable { isPaidMode = false },
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (!isPaidMode) Color(0xFF1E293B) else Color(0xFF0F172A)
+                                    ),
+                                    border = BorderStroke(
+                                        2.dp,
+                                        if (!isPaidMode) Color(0xFF00FFCC) else Color.White.copy(alpha = 0.05f)
+                                    ),
+                                    shape = RoundedCornerShape(10.dp)
                                 ) {
-                                    Text(diff.title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.padding(10.dp)
+                                    ) {
+                                        Text("Gratis", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text("Belohnung: Keine", color = Color.Gray, fontSize = 8.sp)
+                                    }
+                                }
+
+                                Card(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { if (coins >= 10) isPaidMode = true },
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (isPaidMode) Color(0xFF1E293B) else Color(0xFF0F172A).copy(alpha = 0.5f)
+                                    ),
+                                    border = BorderStroke(
+                                        2.dp,
+                                        if (isPaidMode) Color(0xFFFACC15) else Color.White.copy(alpha = 0.05f)
+                                    ),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.padding(10.dp)
+                                    ) {
+                                        Text("Einsatz: 10 💰", color = Color(0xFFFACC15), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text("Gewinn: 1 💰 / Pkt", color = Color(0xFF10B981), fontSize = 8.sp)
+                                    }
+                                }
+                            }
+
+                            // --- SECTION 3: DIFFICULTIES ---
+                            Text(
+                                "Schwierigkeit wählen",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                FlappyDifficulty.values().forEach { diff ->
+                                    Button(
+                                        onClick = { 
+                                            if (isPaidMode && coins < 10) {
+                                                // fallback to free
+                                                isPaidMode = false
+                                            }
+                                            if (isPaidMode) {
+                                                onCoinsUpdate(coins - 10)
+                                            }
+                                            difficulty = diff
+                                            resetPipes()
+                                            countdownValue = 3
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = when (diff) {
+                                                FlappyDifficulty.EASY -> Color(0xFF10B981)
+                                                FlappyDifficulty.MEDIUM -> Color(0xFFF59E0B)
+                                                FlappyDifficulty.HARD -> Color(0xFFEF4444)
+                                            }
+                                        ),
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(vertical = 12.dp)
+                                    ) {
+                                        Text(diff.title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    }
                                 }
                             }
                         }
@@ -442,6 +659,17 @@ fun FlappyBirdGame(
                                 fontFamily = FontFamily.Monospace,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
+                            
+                            if (isPaidMode) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "💰 EINSATZ-RÜCKZAHLUNG: +$score Münzen!",
+                                    color = Color(0xFFFACC15),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(
                                 onClick = { resetGame() },
