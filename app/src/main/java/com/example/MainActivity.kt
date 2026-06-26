@@ -16,6 +16,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
+import com.google.android.gms.ads.MobileAds
 import com.example.ui.AppViewModel
 import com.example.ui.screens.MainAppScreen
 import com.example.ui.theme.MyApplicationTheme
@@ -39,6 +40,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        MobileAds.initialize(this) {}
 
         // Setup ViewModel
         viewModel = ViewModelProvider(this)[AppViewModel::class.java]

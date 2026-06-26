@@ -1283,8 +1283,49 @@ fun GamesTabScreen(viewModel: AppViewModel) {
         }
     }
 
-    if (viewModel.isWatchingAd) {
-        AdPlaybackOverlay(viewModel = viewModel)
+    val context = LocalContext.current
+    var isAd1Loading by remember { mutableStateOf(false) }
+    var isAd2Loading by remember { mutableStateOf(false) }
+    var isAd3Loading by remember { mutableStateOf(false) }
+
+    fun loadAndShowAd(adUnitId: String, totalReward: Int, totalAds: Int, isLoading: (Boolean) -> Unit) {
+        val rewardPerAd = totalReward / totalAds
+
+        fun showNext(count: Int) {
+            if (count <= 0) {
+                isLoading(false)
+                return
+            }
+
+            isLoading(true)
+            com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAd.load(
+                context, adUnitId,
+                com.google.android.gms.ads.AdRequest.Builder().build(),
+                object : com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAdLoadCallback() {
+                    override fun onAdLoaded(ad: com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAd) {
+                        isLoading(false)
+                        viewModel.isAdSelectionOpen = false
+
+                        ad.fullScreenContentCallback = object : com.google.android.gms.ads.FullScreenContentCallback() {
+                            override fun onAdDismissedFullScreenContent() {
+                                showNext(count - 1)
+                            }
+                            override fun onAdFailedToShowFullScreenContent(error: com.google.android.gms.ads.AdError) {
+                                isLoading(false)
+                            }
+                        }
+
+                        ad.show(context as android.app.Activity) {
+                            viewModel.coins += rewardPerAd
+                        }
+                    }
+                    override fun onAdFailedToLoad(error: com.google.android.gms.ads.LoadAdError) {
+                        isLoading(false)
+                    }
+                }
+            )
+        }
+        showNext(totalAds)
     }
 
     if (viewModel.isAdSelectionOpen) {
@@ -1299,19 +1340,31 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Werbung schauen?", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Wähle eine Länge, um kostenlose Münzen zu erhalten. (Nicht überspringbar!)", color = Color.Gray, fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    Text("Wähle eine Länge, um kostenlose Münzen zu erhalten.", color = Color.Gray, fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    Button(onClick = { viewModel.startAd(1, 10) }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))) {
-                        Text("1 Minute = 10 💰", color = Color.White)
+                    Button(onClick = { loadAndShowAd("ca-app-pub-9577025040352211/6933636639", 10, 1) { isAd1Loading = it } }, 
+                           enabled = !isAd1Loading && !isAd2Loading && !isAd3Loading,
+                           modifier = Modifier.fillMaxWidth(), 
+                           colors = ButtonDefaults.buttonColors(containerColor = if (isAd1Loading) Color.Gray else Color(0xFF0F172A))) {
+                        if (isAd1Loading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                        else Text("10 Münzen-Werbung", color = Color.White)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { viewModel.startAd(5, 100) }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))) {
-                        Text("5 Minuten = 100 💰", color = Color.White)
+                    Button(onClick = { loadAndShowAd("ca-app-pub-9577025040352211/2385650447", 50, 2) { isAd2Loading = it } }, 
+                           enabled = !isAd1Loading && !isAd2Loading && !isAd3Loading,
+                           modifier = Modifier.fillMaxWidth(), 
+                           colors = ButtonDefaults.buttonColors(containerColor = if (isAd2Loading) Color.Gray else Color(0xFF0F172A))) {
+                        if (isAd2Loading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                        else Text("50 Münzen-Werbung", color = Color.White)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { viewModel.startAd(10, 500) }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFCC))) {
-                        Text("10 Minuten = 500 💰", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Button(onClick = { loadAndShowAd("ca-app-pub-9577025040352211/1832940506", 250, 5) { isAd3Loading = it } }, 
+                           enabled = !isAd1Loading && !isAd2Loading && !isAd3Loading,
+                           modifier = Modifier.fillMaxWidth(), 
+                           colors = ButtonDefaults.buttonColors(containerColor = if (isAd3Loading) Color.Gray else Color(0xFF00FFCC))) {
+                        if (isAd3Loading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.Black)
+                        else Text("250 Münzen-Werbung", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -2915,130 +2968,4 @@ data class AchievementItem(
     val unlocked: Boolean
 )
 
-@Composable
-fun AdPlaybackOverlay(viewModel: AppViewModel) {
-    var fakeAdIndex by remember { mutableStateOf(0) }
-    val fakeAds = listOf(
-        "💸 INVESTIERE IN KRYPTO-AGENT-COINS!\nVerdopple dein Geld in -5 Tagen!",
-        "🔥 HEISSE AGENTEN IN DEINER NÄHE!\nTriff James B. für geheime Missionen!",
-        "🚗 DRIFT SIMULATOR 2026:\nJetzt herunterladen & jede Sekunde crashen!",
-        "🐤 FLAPPY BIRD PRO 2.0:\nHol dir den Diamant-Skin für 500 Münzen!",
-        "🦖 GOOGLE DINO PET:\nFüttere deinen T-Rex! (Achtung: Beißt!)"
-    )
 
-    LaunchedEffect(viewModel.isWatchingAd) {
-        if (viewModel.isWatchingAd) {
-            while (viewModel.adTimeRemaining > 0) {
-                kotlinx.coroutines.delay(1000)
-                viewModel.adTimeRemaining--
-                if (viewModel.adTimeRemaining % 4 == 0) {
-                    fakeAdIndex = (fakeAdIndex + 1) % fakeAds.size
-                }
-            }
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.96f))
-            .clickable(enabled = false) { /* Block touches */ },
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(24.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Tv,
-                contentDescription = "Ad",
-                tint = Color(0xFFFACC15),
-                modifier = Modifier.size(64.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "📺 SPONSOR-ANZEIGE",
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Nicht überspringbare Werbung für kostenlose Münzen",
-                color = Color.Gray,
-                fontSize = 11.sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Fake ad container
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937)),
-                border = BorderStroke(2.dp, Color(0xFF00FFCC)),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .padding(8.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = fakeAds[fakeAdIndex],
-                        color = Color(0xFF00FFCC),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        lineHeight = 20.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            if (viewModel.adTimeRemaining > 0) {
-                val min = viewModel.adTimeRemaining / 60
-                val sec = viewModel.adTimeRemaining % 60
-                Text(
-                    text = "Werbung endet in: ${min}m ${sec}s",
-                    color = Color.White,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                LinearProgressIndicator(
-                    progress = { (viewModel.currentAdTotalTime - viewModel.adTimeRemaining) / viewModel.currentAdTotalTime.toFloat() },
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = Color(0xFF00FFCC),
-                    trackColor = Color.White.copy(alpha = 0.1f)
-                )
-            } else {
-                Text(
-                    text = "Glückwunsch! Du hast ${viewModel.currentAdReward} Münzen verdient! 🎉",
-                    color = Color(0xFFFACC15),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = { viewModel.awardAdCoins() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFCC))
-                ) {
-                    Text(
-                        "BELOHNUNG BEANSPRUCHEN (+${viewModel.currentAdReward} 💰)",
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
