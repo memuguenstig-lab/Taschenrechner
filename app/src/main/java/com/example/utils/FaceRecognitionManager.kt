@@ -12,7 +12,7 @@ class FaceRecognitionManager(private val context: Context) {
     private val options = FaceDetectorOptions.Builder()
         .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
         .build()
-    private val detector = FaceDetection.getClient(options)
+    private val detector by lazy { FaceDetection.getClient(options) }
 
     suspend fun detectFace(bitmap: Bitmap): Boolean = suspendCoroutine { continuation ->
         val image = InputImage.fromBitmap(bitmap, 0)

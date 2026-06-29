@@ -61,6 +61,7 @@ import com.example.ui.games.SlotMachineGame
 import com.example.ui.games.SnakeGame
 import com.example.ui.games.TetrisGame
 import com.example.ui.games.TicTacToeGame
+import com.example.ui.games.TowerStackGame
 import com.example.ui.games.MemoryGame
 import com.example.ui.games.DriftCarGame
 import com.example.ui.games.CrowdRunnerGame
@@ -105,6 +106,13 @@ fun CalculatorScreen(
     viewModel: AppViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(viewModel.isSecretUnlocked) {
+        if (viewModel.isSecretUnlocked) {
+            // Toast removed to prevent crash
+        }
+    }
+    
     val calculations by viewModel.calculations.collectAsStateWithLifecycle()
     var showCalcSettings by remember { mutableStateOf(false) }
     val configuration = LocalConfiguration.current
@@ -1243,6 +1251,7 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                     GameType.DOTS_AND_BOXES -> RenderGameComponent(GameType.DOTS_AND_BOXES, viewModel) { viewModel.activeGame = GameType.HOME }
                     GameType.BINARY_ECHO -> RenderGameComponent(GameType.BINARY_ECHO, viewModel) { viewModel.activeGame = GameType.HOME }
                     GameType.PIXEL_ARTILLERY_SURVIVAL -> RenderGameComponent(GameType.PIXEL_ARTILLERY_SURVIVAL, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.TOWER_STACK -> RenderGameComponent(GameType.TOWER_STACK, viewModel) { viewModel.activeGame = GameType.HOME }
                     
                     GameType.MOCK_GPS -> MockGpsScreen(
                         viewModel = viewModel,
@@ -1430,6 +1439,7 @@ fun RenderGameComponent(
         )
         GameType.BINARY_ECHO -> PlaceholderGameUI(title = "Binary Echo", onBack = onBack)
         GameType.PIXEL_ARTILLERY_SURVIVAL -> PlaceholderGameUI(title = "Pixel Artillery Survival", onBack = onBack)
+        GameType.TOWER_STACK -> TowerStackGame(onBack = onBack)
         GameType.SLOTS -> SlotMachineGame(
             coins = viewModel.coins,
             onCoinsUpdate = { viewModel.coins = it },
@@ -1612,7 +1622,8 @@ fun GamesCatalogView(
                     Triple("TETRIS BLOCKS", "Rotiere herabfallende Blöcke!", "🏆 Rekord: $tetrisHighScore" to GameType.TETRIS),
                     Triple("FLAPPY BIRD", "Durchqueren der Rohre!", "🏆 Rekord: $flappyBirdHighScore" to GameType.FLAPPYBIRD),
                     Triple("BINARY ECHO", "Finde den Rhythmus in Datenströmen!", "Binary" to GameType.BINARY_ECHO),
-                    Triple("PIXEL ARTILLERY SURVIVAL", "Überlebe die pixeligen Wellen!", "Survival" to GameType.PIXEL_ARTILLERY_SURVIVAL)
+                    Triple("PIXEL ARTILLERY SURVIVAL", "Überlebe die pixeligen Wellen!", "Survival" to GameType.PIXEL_ARTILLERY_SURVIVAL),
+                    Triple("TOWER STACK", "Staple die Blöcke perfekt!", "Tower" to GameType.TOWER_STACK)
                 )
 
                 val icons = listOf(
@@ -1637,7 +1648,8 @@ fun GamesCatalogView(
                     Icons.Default.GridOn,
                     Icons.Default.Air,
                     Icons.Default.Code,
-                    Icons.Default.MilitaryTech
+                    Icons.Default.MilitaryTech,
+                    Icons.Default.Architecture
                 )
 
                 val colors = listOf(
@@ -1648,7 +1660,7 @@ fun GamesCatalogView(
                     Color(0xFF10B981), Color(0xEAB308), Color(0xFF3B82F6),
                     Color(0xFFEC4899), Color(0xFF3B82F6), Color(0xFFEC4899),
                     Color(0xFF10B981), Color(0xFFA855F7), Color(0xFFFACC15),
-                    Color(0xFF6366F1), Color(0xFFEF4444)
+                    Color(0xFF6366F1), Color(0xFFEF4444), Color(0xFF10B981)
                 )
 
                 val gamesChunks = gamesList.chunked(columns)

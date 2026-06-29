@@ -19,7 +19,7 @@ enum class SecretSection {
 }
 
 enum class GameType {
-    SNAKE, TETRIS, FLAPPYBIRD, TICTACTOE, MEMORY, SLOTS, BLACKJACK, MINES, DINO, PONG, TWO_THOUSAND_FORTY_EIGHT, DOTS_AND_BOXES, MOCK_GPS, INTRUDER_PHOTOS, DISGUISE_SETTINGS, COOP_SPLIT_SCREEN, COOP_SPLIT_TUG_OF_WAR, COOP_SPLIT_REACTION, CROWD_RUNNER, DRIFT_CAR, RHYTHM_TAPPER, SPACE_SHOOTER, WIFI_SERVER, BINARY_ECHO, PIXEL_ARTILLERY_SURVIVAL, HOME
+    SNAKE, TETRIS, FLAPPYBIRD, TICTACTOE, MEMORY, SLOTS, BLACKJACK, MINES, DINO, PONG, TWO_THOUSAND_FORTY_EIGHT, DOTS_AND_BOXES, MOCK_GPS, INTRUDER_PHOTOS, DISGUISE_SETTINGS, COOP_SPLIT_SCREEN, COOP_SPLIT_TUG_OF_WAR, COOP_SPLIT_REACTION, CROWD_RUNNER, DRIFT_CAR, RHYTHM_TAPPER, SPACE_SHOOTER, WIFI_SERVER, BINARY_ECHO, PIXEL_ARTILLERY_SURVIVAL, TOWER_STACK, HOME
 }
 
 enum class AppTheme {
@@ -328,6 +328,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onCalculatorEvaluate() {
+        android.util.Log.d("Calculator", "onCalculatorEvaluate called")
         val trimmed = calculatorInput.trim()
         if (trimmed == "0000") {
             // Normal Secret Unlocked
@@ -359,7 +360,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
         if (trimmed.isEmpty()) return
 
-        val result = MathEvaluator.evaluate(trimmed)
+        val result = try {
+            MathEvaluator.evaluate(trimmed)
+        } catch (e: Exception) {
+            "Syntax Fehler"
+        }
         calculatorOutput = result
 
         // Save normal query to Room if successful
