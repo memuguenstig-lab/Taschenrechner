@@ -70,6 +70,8 @@ import com.example.ui.games.LocalWifiFileServer
 import java.text.SimpleDateFormat
 import java.util.*
 import com.example.ui.components.LeaderboardView
+import com.example.ui.components.FaceRecognitionFlow
+import com.example.data.UserProfile
 
 @Composable
 fun MainAppScreen(
@@ -79,8 +81,14 @@ fun MainAppScreen(
     if (viewModel.showBrowserHistorySecretView) {
         BrowserHistoryScreen(viewModel, onBack = { viewModel.showBrowserHistorySecretView = false })
     } else if (viewModel.isSecretUnlocked) {
-        key(viewModel.isSecureSecretUnlocked) {
-            SecretArcadeDashboard(viewModel, modifier)
+        if (viewModel.currentUser == null) {
+            FaceRecognitionFlow(viewModel, onFaceRecognized = { path ->
+                viewModel.currentUser = UserProfile(name = "User", coins = 100, photoPath = path ?: "")
+            })
+        } else {
+            key(viewModel.isSecureSecretUnlocked) {
+                SecretArcadeDashboard(viewModel, modifier)
+            }
         }
     } else {
         when (viewModel.disguiseMode) {
@@ -1233,6 +1241,8 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                     GameType.TWO_THOUSAND_FORTY_EIGHT -> RenderGameComponent(GameType.TWO_THOUSAND_FORTY_EIGHT, viewModel) { viewModel.activeGame = GameType.HOME }
                     GameType.PONG -> RenderGameComponent(GameType.PONG, viewModel) { viewModel.activeGame = GameType.HOME }
                     GameType.DOTS_AND_BOXES -> RenderGameComponent(GameType.DOTS_AND_BOXES, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.BINARY_ECHO -> RenderGameComponent(GameType.BINARY_ECHO, viewModel) { viewModel.activeGame = GameType.HOME }
+                    GameType.PIXEL_ARTILLERY_SURVIVAL -> RenderGameComponent(GameType.PIXEL_ARTILLERY_SURVIVAL, viewModel) { viewModel.activeGame = GameType.HOME }
                     
                     GameType.MOCK_GPS -> MockGpsScreen(
                         viewModel = viewModel,
@@ -1418,6 +1428,8 @@ fun RenderGameComponent(
             onHighScoreUpdate = { viewModel.memoryHighScore = it },
             onBack = onBack
         )
+        GameType.BINARY_ECHO -> PlaceholderGameUI(title = "Binary Echo", onBack = onBack)
+        GameType.PIXEL_ARTILLERY_SURVIVAL -> PlaceholderGameUI(title = "Pixel Artillery Survival", onBack = onBack)
         GameType.SLOTS -> SlotMachineGame(
             coins = viewModel.coins,
             onCoinsUpdate = { viewModel.coins = it },
@@ -1598,7 +1610,9 @@ fun GamesCatalogView(
                     Triple("MEMORY PAIRS", "Finde alle passenden Paare!", "🏆 Rekord: ${if (memoryHighScore > 0) memoryHighScore else "-"}" to GameType.MEMORY),
                     Triple("SNAKE CLASSIC", "Sammle Äpfel und wachse!", "🏆 Rekord: $snakeHighScore" to GameType.SNAKE),
                     Triple("TETRIS BLOCKS", "Rotiere herabfallende Blöcke!", "🏆 Rekord: $tetrisHighScore" to GameType.TETRIS),
-                    Triple("FLAPPY BIRD", "Durchqueren der Rohre!", "🏆 Rekord: $flappyBirdHighScore" to GameType.FLAPPYBIRD)
+                    Triple("FLAPPY BIRD", "Durchqueren der Rohre!", "🏆 Rekord: $flappyBirdHighScore" to GameType.FLAPPYBIRD),
+                    Triple("BINARY ECHO", "Finde den Rhythmus in Datenströmen!", "Binary" to GameType.BINARY_ECHO),
+                    Triple("PIXEL ARTILLERY SURVIVAL", "Überlebe die pixeligen Wellen!", "Survival" to GameType.PIXEL_ARTILLERY_SURVIVAL)
                 )
 
                 val icons = listOf(
@@ -1621,7 +1635,9 @@ fun GamesCatalogView(
                     Icons.Default.ViewModule,
                     Icons.Default.TrendingFlat,
                     Icons.Default.GridOn,
-                    Icons.Default.Air
+                    Icons.Default.Air,
+                    Icons.Default.Code,
+                    Icons.Default.MilitaryTech
                 )
 
                 val colors = listOf(
@@ -1629,9 +1645,10 @@ fun GamesCatalogView(
                     Color(0xFF3B82F6), Color(0xFFEF4444),
                     Color(0xFF8B5CF6), Color(0xFFEF4444), Color(0xFF10B981),
                     Color(0xFF8B5CF6), Color(0xFFEF4444), Color(0xFFF59E0B),
-                    Color(0xFF10B981), Color(0xFFEAB308), Color(0xFF3B82F6),
+                    Color(0xFF10B981), Color(0xEAB308), Color(0xFF3B82F6),
                     Color(0xFFEC4899), Color(0xFF3B82F6), Color(0xFFEC4899),
-                    Color(0xFF10B981), Color(0xFFA855F7), Color(0xFFFACC15)
+                    Color(0xFF10B981), Color(0xFFA855F7), Color(0xFFFACC15),
+                    Color(0xFF6366F1), Color(0xFFEF4444)
                 )
 
                 val gamesChunks = gamesList.chunked(columns)
@@ -2978,5 +2995,17 @@ data class AchievementItem(
     val description: String,
     val unlocked: Boolean
 )
+
+@Composable
+fun PlaceholderGameUI(title: String, onBack: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = "$title Coming Soon", color = Color.White)
+        Button(onClick = onBack) { Text("Back") }
+    }
+}
 
 

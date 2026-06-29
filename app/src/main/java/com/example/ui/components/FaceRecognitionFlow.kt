@@ -33,29 +33,25 @@ fun FaceRecognitionFlow(viewModel: AppViewModel, onFaceRecognized: (String?) -> 
     // Since I cannot implement full camera preview in this environment easily,
     // I will assume there is a mechanism to get a bitmap.
     
-    var showDialog by remember { mutableStateOf(true) }
-
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { /* Cannot dismiss */ },
-            title = { Text("Gesichtserkennung") },
-            text = { Text("Bitte lächeln für die Anmeldung oder fahre anonym fort.") },
-            confirmButton = {
-                Button(onClick = {
-                    Toast.makeText(context, "Erkennung läuft...", Toast.LENGTH_SHORT).show()
-                }) {
-                    Text("Erkennen")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    viewModel.currentUser = AppViewModel.ANONYMOUS_PROFILE
-                    viewModel.coins = 0
-                    showDialog = false
-                }) {
-                    Text("Anonym")
-                }
+    // Using a more robust dialog handling
+    AlertDialog(
+        onDismissRequest = { },
+        title = { Text("Gesichtserkennung") },
+        text = { Text("Kamera nicht verfügbar oder kein Gesicht erkannt. Bitte manuell fortfahren.") },
+        confirmButton = {
+            Button(onClick = {
+                onFaceRecognized(null)
+            }) {
+                Text("Erneut versuchen")
             }
-        )
-    }
+        },
+        dismissButton = {
+            TextButton(onClick = {
+                viewModel.currentUser = AppViewModel.ANONYMOUS_PROFILE
+                viewModel.coins = 0
+            }) {
+                Text("Anonym")
+            }
+        }
+    )
 }
