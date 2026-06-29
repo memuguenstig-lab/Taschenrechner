@@ -87,6 +87,7 @@ roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi
 roborazzi-junit-rule = { group = "io.github.takahirom.roborazzi", name = "roborazzi-junit-rule", version.ref = "roborazzi" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-ai = { group = "com.google.firebase", name = "firebase-ai" }
+mlkit-face-detection = { group = "com.google.mlkit", name = "face-detection", version = "16.1.7" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

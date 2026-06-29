@@ -8,9 +8,6 @@ import android.util.Base64
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.*
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -213,47 +210,8 @@ fun SilentCameraScanner(viewModel: AppViewModel) {
         }
 
         fun takePhoto(isFront: Boolean) {
-            if (!hasCameraPermission) {
-                saveMockEntry()
-                return
-            }
-            val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-            cameraProviderFuture.addListener({
-                try {
-                    val cameraProvider = cameraProviderFuture.get()
-                    val imageCapture = ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                        .build()
-                    val cameraSelector = if (isFront) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
-                    
-                    cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(
-                        lifecycleOwner,
-                        cameraSelector,
-                        imageCapture
-                    )
-                    
-                    val file = File(context.cacheDir, "spy_${if (isFront) "front" else "back"}_${System.currentTimeMillis()}.jpg")
-                    val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
-                    
-                    imageCapture.takePicture(
-                        outputOptions,
-                        ContextCompat.getMainExecutor(context),
-                        object : ImageCapture.OnImageSavedCallback {
-                            override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                                viewModel.captureIntruderPhoto(isMocked = false, base64OrPath = file.absolutePath)
-                                cameraProvider.unbindAll()
-                            }
-                            override fun onError(exception: ImageCaptureException) {
-                                saveMockEntry()
-                                cameraProvider.unbindAll()
-                            }
-                        }
-                    )
-                } catch (e: Exception) {
-                    saveMockEntry()
-                }
-            }, ContextCompat.getMainExecutor(context))
+            // CameraX usage removed
+            saveMockEntry()
         }
 
         // Initial snapshot

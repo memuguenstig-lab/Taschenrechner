@@ -69,6 +69,7 @@ import com.example.ui.games.RetroSpaceShooterGame
 import com.example.ui.games.LocalWifiFileServer
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.ui.components.LeaderboardView
 
 @Composable
 fun MainAppScreen(
@@ -594,7 +595,8 @@ fun SecretArcadeDashboard(
             SecretSection.GAMES,
             SecretSection.CHAT,
             SecretSection.BROWSER,
-            SecretSection.WATCH
+            SecretSection.WATCH,
+            SecretSection.LEADERBOARD
         )
     }
     
@@ -636,7 +638,7 @@ fun SecretArcadeDashboard(
                         selectedTabIndex = pagerState.currentPage,
                         containerColor = Color.Transparent,
                         contentColor = Color(0xFF00FFCC),
-                        edgePadding = 8.dp,
+                        edgePadding = 0.dp,
                         modifier = Modifier.weight(1f),
                         indicator = { tabPositions ->
                             if (pagerState.currentPage < tabPositions.size) {
@@ -654,6 +656,7 @@ fun SecretArcadeDashboard(
                                 SecretSection.CHAT -> Icons.Default.SmartToy
                                 SecretSection.BROWSER -> Icons.Default.Public
                                 SecretSection.WATCH -> Icons.Default.PlayCircle
+                                SecretSection.LEADERBOARD -> Icons.Default.Leaderboard
                                 SecretSection.SETTINGS -> Icons.Default.Settings
                                 else -> Icons.Default.Circle
                             }
@@ -663,6 +666,7 @@ fun SecretArcadeDashboard(
                                 SecretSection.CHAT -> "KI"
                                 SecretSection.BROWSER -> "Web"
                                 SecretSection.WATCH -> "Watch"
+                                SecretSection.LEADERBOARD -> "Leaderboard"
                                 SecretSection.SETTINGS -> "Settings"
                                 else -> ""
                             }
@@ -670,7 +674,6 @@ fun SecretArcadeDashboard(
                                 selected = pagerState.currentPage == index,
                                 onClick = { viewModel.currentSecretSection = section },
                                 icon = { Icon(icon, contentDescription = label) },
-                                text = { Text(label, fontSize = 10.sp) },
                                 selectedContentColor = Color(0xFF00FFCC),
                                 unselectedContentColor = Color.White.copy(alpha = 0.5f)
                             )
@@ -732,6 +735,7 @@ fun SecretArcadeDashboard(
                         SecretSection.CHAT -> ChatBotTabScreen(viewModel)
                         SecretSection.BROWSER -> BrowserTabScreen(viewModel)
                         SecretSection.WATCH -> WatchTabScreen()
+                        SecretSection.LEADERBOARD -> LeaderboardView(viewModel)
                         SecretSection.SETTINGS -> SecretSettingsTabScreen(viewModel)
                         else -> Box(modifier = Modifier.fillMaxSize())
                     }
@@ -1291,8 +1295,8 @@ fun GamesTabScreen(viewModel: AppViewModel) {
     fun loadAndShowAd(adUnitId: String, totalReward: Int, totalAds: Int, isLoading: (Boolean) -> Unit) {
         val rewardPerAd = totalReward / totalAds
 
-        fun showNext(count: Int) {
-            if (count <= 0) {
+        fun showNext(remaining: Int) {
+            if (remaining <= 0) {
                 isLoading(false)
                 return
             }
@@ -1308,7 +1312,10 @@ fun GamesTabScreen(viewModel: AppViewModel) {
 
                         ad.fullScreenContentCallback = object : com.google.android.gms.ads.FullScreenContentCallback() {
                             override fun onAdDismissedFullScreenContent() {
-                                showNext(count - 1)
+                                // If there are more ads, show the next one after a short delay
+                                if (remaining > 1) {
+                                    showNext(remaining - 1)
+                                }
                             }
                             override fun onAdFailedToShowFullScreenContent(error: com.google.android.gms.ads.AdError) {
                                 isLoading(false)
@@ -1321,6 +1328,10 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                     }
                     override fun onAdFailedToLoad(error: com.google.android.gms.ads.LoadAdError) {
                         isLoading(false)
+                        // Retry once after a delay if failed to load
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            showNext(remaining)
+                        }, 2000)
                     }
                 }
             )
@@ -1343,28 +1354,28 @@ fun GamesTabScreen(viewModel: AppViewModel) {
                     Text("Wähle eine Länge, um kostenlose Münzen zu erhalten.", color = Color.Gray, fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    Button(onClick = { loadAndShowAd("ca-app-pub-9577025040352211/6933636639", 10, 1) { isAd1Loading = it } }, 
+                    Button(onClick = { loadAndShowAd("ca-app-pub-9577025040352211/6933636639", 10, 2) { isAd1Loading = it } }, 
                            enabled = !isAd1Loading && !isAd2Loading && !isAd3Loading,
                            modifier = Modifier.fillMaxWidth(), 
                            colors = ButtonDefaults.buttonColors(containerColor = if (isAd1Loading) Color.Gray else Color(0xFF0F172A))) {
                         if (isAd1Loading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-                        else Text("10 Münzen-Werbung", color = Color.White)
+                        else Text("10 Münzen (2 Anzeigen)", color = Color.White)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { loadAndShowAd("ca-app-pub-9577025040352211/2385650447", 50, 2) { isAd2Loading = it } }, 
+                    Button(onClick = { loadAndShowAd("ca-app-pub-9577025040352211/2385650447", 50, 5) { isAd2Loading = it } }, 
                            enabled = !isAd1Loading && !isAd2Loading && !isAd3Loading,
                            modifier = Modifier.fillMaxWidth(), 
                            colors = ButtonDefaults.buttonColors(containerColor = if (isAd2Loading) Color.Gray else Color(0xFF0F172A))) {
                         if (isAd2Loading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-                        else Text("50 Münzen-Werbung", color = Color.White)
+                        else Text("50 Münzen (5 Anzeigen)", color = Color.White)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { loadAndShowAd("ca-app-pub-9577025040352211/1832940506", 250, 5) { isAd3Loading = it } }, 
+                    Button(onClick = { loadAndShowAd("ca-app-pub-9577025040352211/1832940506", 250, 10) { isAd3Loading = it } }, 
                            enabled = !isAd1Loading && !isAd2Loading && !isAd3Loading,
                            modifier = Modifier.fillMaxWidth(), 
                            colors = ButtonDefaults.buttonColors(containerColor = if (isAd3Loading) Color.Gray else Color(0xFF00FFCC))) {
                         if (isAd3Loading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.Black)
-                        else Text("250 Münzen-Werbung", color = Color.Black, fontWeight = FontWeight.Bold)
+                        else Text("250 Münzen (10 Anzeigen)", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 }
             }

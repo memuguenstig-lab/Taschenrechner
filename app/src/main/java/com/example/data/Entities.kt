@@ -44,6 +44,15 @@ data class IntruderPhoto(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "user_profiles")
+data class UserProfile(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val coins: Int = 0,
+    val photoPath: String,
+    val lastLogin: Long = System.currentTimeMillis()
+)
+
 @Entity(tableName = "fake_notes")
 data class FakeNote(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

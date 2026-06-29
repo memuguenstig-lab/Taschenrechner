@@ -77,3 +77,15 @@ interface FakeNoteDao {
     @Query("DELETE FROM fake_notes WHERE id = :id")
     suspend fun deleteNote(id: Long)
 }
+
+@Dao
+interface UserProfileDao {
+    @Query("SELECT * FROM user_profiles")
+    fun getAllProfiles(): Flow<List<UserProfile>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProfile(profile: UserProfile): Long
+
+    @Query("SELECT * FROM user_profiles WHERE name = :name LIMIT 1")
+    suspend fun getProfileByName(name: String): UserProfile?
+}

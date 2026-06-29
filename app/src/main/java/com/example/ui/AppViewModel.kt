@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 enum class SecretSection {
-    STATS, GAMES, CHAT, GALLERY, BROWSER, WATCH, SETTINGS
+    STATS, GAMES, CHAT, GALLERY, BROWSER, WATCH, SETTINGS, LEADERBOARD
 }
 
 enum class GameType {
@@ -104,55 +104,52 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val fakeNotes: StateFlow<List<FakeNote>> = fakeNoteDao.getAllNotes()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val userProfiles: StateFlow<List<UserProfile>> = database.userProfileDao().getAllProfiles()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    companion object {
+        val ANONYMOUS_PROFILE = UserProfile(name = "Anonymous", coins = 0, photoPath = "")
+    }
+
     // --- Navigation & Flow States ---
     var isSecretUnlocked by mutableStateOf(false)
     var isSecureSecretUnlocked by mutableStateOf(false)
-
     var showBrowserHistorySecretView by mutableStateOf(false)
-
     // --- Theme & Disguise Settings ---
     var appTheme by mutableStateOf(
         try {
             AppTheme.valueOf(prefs.getString("appTheme", AppTheme.CLASSIC_DARK.name) ?: AppTheme.CLASSIC_DARK.name)
         } catch (e: Exception) { AppTheme.CLASSIC_DARK }
     )
-
     fun updateTheme(newTheme: AppTheme) {
         appTheme = newTheme
         prefs.edit().putString("appTheme", newTheme.name).apply()
     }
-
     var disguiseMode by mutableStateOf(
         try {
             DisguiseMode.valueOf(prefs.getString("disguiseMode", DisguiseMode.NONE.name) ?: DisguiseMode.NONE.name)
         } catch (e: Exception) { DisguiseMode.NONE }
     )
-
     fun updateDisguiseMode(mode: DisguiseMode) {
         disguiseMode = mode
         prefs.edit().putString("disguiseMode", mode.name).apply()
     }
-
     // --- Mock GPS Spoofer ---
     var mockGpsLat by mutableStateOf(prefs.getFloat("mockGpsLat", 48.8584f))
     var mockGpsLng by mutableStateOf(prefs.getFloat("mockGpsLng", 2.2945f))
     var mockGpsLabel by mutableStateOf(prefs.getString("mockGpsLabel", "Eiffelturm (Paris)") ?: "Eiffelturm (Paris)")
     var isMockGpsActive by mutableStateOf(prefs.getBoolean("isMockGpsActive", false))
-
     var isSecretPhotoEnabled by mutableStateOf(prefs.getBoolean("isSecretPhotoEnabled", false))
-
     fun updateSecretPhotoEnabled(enabled: Boolean) {
         isSecretPhotoEnabled = enabled
         prefs.edit().putBoolean("isSecretPhotoEnabled", enabled).apply()
     }
-
     var isPanicLockEnabled by mutableStateOf(prefs.getBoolean("isPanicLockEnabled", true))
-
+    var currentUser by mutableStateOf<UserProfile?>(null)
     fun updatePanicLockEnabled(enabled: Boolean) {
         isPanicLockEnabled = enabled
         prefs.edit().putBoolean("isPanicLockEnabled", enabled).apply()
     }
-
     fun saveMockGps(lat: Float, lng: Float, label: String, active: Boolean) {
         mockGpsLat = lat
         mockGpsLng = lng
@@ -165,21 +162,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .putBoolean("isMockGpsActive", active)
             .apply()
     }
-
     var currentSecretSection by mutableStateOf(SecretSection.GAMES)
     var activeGame by mutableStateOf(GameType.HOME)
     var gamesGridColumns by mutableStateOf(prefs.getInt("gamesGridColumns", 2))
-
     var isWatchingAd by mutableStateOf(false)
     var isAdSelectionOpen by mutableStateOf(false)
     var adTimeRemaining by mutableStateOf(0)
     var currentAdReward by mutableStateOf(0)
     var currentAdTotalTime by mutableStateOf(0)
-
     fun openAdSelection() {
         isAdSelectionOpen = true
     }
-
     fun startAd(minutes: Int, reward: Int) {
         isAdSelectionOpen = false
         if (!isWatchingAd) {
@@ -189,9 +182,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             currentAdReward = reward
         }
     }
-
     fun awardAdCoins() {
-        coins += currentAdReward
+        if (currentUser != null && currentUser!!.name != ANONYMOUS_PROFILE.name) {
+            coins += currentAdReward
+        }
         isWatchingAd = false
     }
 

@@ -6,8 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [Calculation::class, ChatMessage::class, GeneratedImage::class, BrowserHistoryEntry::class, IntruderPhoto::class, FakeNote::class],
-    version = 3,
+    entities = [Calculation::class, ChatMessage::class, GeneratedImage::class, BrowserHistoryEntry::class, IntruderPhoto::class, FakeNote::class, UserProfile::class],
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -17,6 +17,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun browserHistoryDao(): BrowserHistoryDao
     abstract fun intruderPhotoDao(): IntruderPhotoDao
     abstract fun fakeNoteDao(): FakeNoteDao
+    abstract fun userProfileDao(): UserProfileDao
 
     companion object {
         @Volatile
