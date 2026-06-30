@@ -303,6 +303,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             prefs.edit().putInt("twoThousandFortyEightHighScore", value).apply()
         }
 
+    // Add unlockedGames and money management
     private var _coins = mutableStateOf(prefs.getInt("coins", 500))
     var coins: Int
         get() = _coins.value
@@ -310,6 +311,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _coins.value = value
             prefs.edit().putInt("coins", value).apply()
         }
+    
+    // Double or Nothing
+    fun doubleOrNothing(isWin: Boolean) {
+        if (isWin) {
+            coins *= 2
+        } else {
+            coins = 0
+        }
+    }
         
     var isFullScreen by mutableStateOf(false)
 

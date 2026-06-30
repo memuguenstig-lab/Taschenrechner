@@ -776,6 +776,16 @@ fun StatsTabScreen(viewModel: AppViewModel) {
         item {
             SpionageDashboardView(viewModel = viewModel)
         }
+        item {
+            // Double or Nothing
+            androidx.compose.material3.Button(
+                onClick = { viewModel.doubleOrNothing(isWin = (0..1).random() == 1) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFACC15))
+            ) {
+                Text("Double or Nothing (50/50)", color = Color.Black, fontWeight = FontWeight.Bold)
+            }
+        }
     }
 }
 
